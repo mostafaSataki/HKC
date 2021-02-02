@@ -189,8 +189,8 @@ class FileUtility:
       return os.path.join(os.path.join(dst_path, dst_branch), fname+postfix+ext)
 
   @staticmethod
-  def getDstFilename2(src_filename,src_path, dst_path,copy_in_root = False):
-    if copy_in_root:
+  def getDstFilename2(src_filename, src_path, dst_path, copy_to_root = False):
+    if copy_to_root:
       tokens = FileUtility.getFileTokens(src_filename)
       return os.path.join(dst_path,tokens[1]+tokens[2]) 
     else :
@@ -199,10 +199,10 @@ class FileUtility:
       return dst_path+filename
 
   @staticmethod
-  def getDstFilenames2(src_filenames,src_path, dst_path,copy_in_root = False):
+  def getDstFilenames2(src_filenames, src_path, dst_path, copy_to_root = False):
     result = []
     for src_filename in src_filenames:
-      result.append(FileUtility.getDstFilename2(src_filename,src_path,dst_path,copy_in_root))
+      result.append(FileUtility.getDstFilename2(src_filename,src_path,dst_path,copy_to_root))
 
     return result
 
@@ -420,7 +420,9 @@ class FileUtility:
 
   @staticmethod
   def deleteFolderContents(path):
-    shutil.rmtree(path)
+    if os.path.exists(path):
+       shutil.rmtree(path)
+    os.mkdir(path)
 
   @staticmethod
   def upFolderName(path):
