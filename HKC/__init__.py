@@ -1,6 +1,7 @@
 from .FileUtility import *
 from .GoogleSearch import *
 from .CvUtility import *
+from .GTUtility import *
 from .GTUtilityDET import *
 from .GTUtilityCLS import *
 from .MatUtility import *

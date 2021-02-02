@@ -1,12 +1,32 @@
 from .FileUtility import *
 from .CvUtility import *
 from .MatUtility import *
+from enum import  Enum
+import  random
+
+
+# class IndexType(enum.Enum):
+#     Begin
+#     End
+#     Random
 
 class GTUtility:
     @staticmethod
-    def getGTRandomIndexs(count, train_per=0.8):
-        total_indexs = MatUtility.getRandomIndexs(count)
-        train_count = int(count * train_per)
+    def getIndexs(count,index_type = IndexType.random):
+        if index_type == IndexType.end_total or index_type == IndexType.end_branch:
+            list1 = list(range(count - 1, -1, -1))
+        else:
+            list1 = list(range(count))
+            if index_type == IndexType.random :
+                random.shuffle(list1)
+        return list1
+
+    @staticmethod
+    def getGTIndexs(count,per = 1.0, index_type = IndexType.random):
+        total_indexs = GTUtility.getIndexs(count,index_type)
+        train_count = int(count * per)
         train_indexs = total_indexs[:train_count]
         test_indexs = total_indexs[train_count:]
         return train_indexs, test_indexs
+
+
