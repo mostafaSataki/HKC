@@ -20,8 +20,10 @@ import io
 import pandas as pd
 import tensorflow as tf
 
+import  tempfile
+
 # from PIL import Image
-# from object_detection.utils import dataset_util
+from object_detection.utils import dataset_util
 # from collections import namedtuple, OrderedDict
 
 
@@ -450,230 +452,263 @@ class GTUtilityDET:
   #
 
   @staticmethod
-  def voc2Csv(src_path,csv_filename):
+  def GT2Csv(src_path,csv_filename):
       image_filenames ,gt_filenames = GTUtilityDET.getGtFiles(src_path)
-      xml_list = []
+      gt_list = []
 
-      for gt_filename in gt_filenames :
-          voc = VOC()
-          voc.load(gt_filename)
+      for i in tqdm(range(1, len(image_filenames)), ncols=100):
+          image_filename = image_filenames[i]
+          gt_filename = gt_filenames[i]
+          gt,_ = GTUtilityDET.loadGT(image_filename)
+
+
+          for obj in gt.data_.objects_:
+              r = obj.region_.get2Points()
+
+              value = (gt.data_.filename_,
+                       gt.data_.size_[0],gt.data_.size_[1],
+                       obj.name_,r[0],r[1],r[2],r[3])
+              gt_list.append(value)
+
+      column_name = ['filename', 'width', 'height', 'class', 'xmin', 'ymin', 'xmax', 'ymax']
+      xml_df = pd.DataFrame(gt_list, columns=column_name)
+
+      xml_df.to_csv(csv_filename, index=None)
+
 
 
   @staticmethod
-  def voc2CsvBatch(src_path,dst_path):
+  def GT2CsvBranchs(src_path,dst_path,clear_dst = False):
+      if clear_dst:
+         FileUtility.createClearFolder(dst_path)
+
+      if not os.path.exists(dst_path):
+         os.mkdir(dst_path)
+
       sub_folders = FileUtility.getSubfolders(src_path)
       for sub_folder in sub_folders :
          cur_folder = os.path.join(src_path,sub_folder)
-         GTUtilityDET.voc2Csv(cur_folder,os.path.join(dst_path,sub_folder))
+         GTUtilityDET.GT2Csv(cur_folder,os.path.join(dst_path,sub_folder+".csv"))
+
+  # @staticmethod
+  # def classLabelIndex(row_label,labels):
+  #         index = labels.getIndex(row_label)
+  #         if index >= 0:
+  #             index += 1
+  #         else : index = -1
+  #
+  #         return index
+  #
+  #
+  # @staticmethod
+  # def split(df, group):
+  #         data = namedtuple('data', ['filename', 'object'])
+  #         gb = df.groupby(group)
+  #         return [data(filename, gb.get_group(x)) for filename, x in zip(gb.groups.keys(), gb.groups)]
+
+  @staticmethod
+  def createTFExample(images_path,groups,tf_rec_filename ,labels,branch):
+
+          writer = tf.io.TFRecordWriter(tf_rec_filename)
+          xmin = []
+          xmax = []
+          ymin = []
+          ymax = []
+          class_ = []
+          width = 0
+          height = 0
+          cur_full_filename = ''
+          encoded_jpg  = None
+          image_format =  b'jpg'
+          filename = ''
+
+          def addSample():
+              tf_example = tf.train.Example(features=tf.train.Features(feature={
+                  'image/height': dataset_util.int64_feature(height),
+                  'image/width': dataset_util.int64_feature(width),
+                  'image/filename': dataset_util.bytes_feature(cur_full_filename.encode('utf8')),
+                  'image/source_id': dataset_util.bytes_feature(cur_full_filename.encode('utf8')),
+                  'image/encoded': dataset_util.bytes_feature(encoded_jpg),
+                  'image/format': dataset_util.bytes_feature(image_format),
+                  'image/object/bbox/xmin': dataset_util.float_list_feature(xmins),
+                  'image/object/bbox/xmax': dataset_util.float_list_feature(xmaxs),
+                  'image/object/bbox/ymin': dataset_util.float_list_feature(ymins),
+                  'image/object/bbox/ymax': dataset_util.float_list_feature(ymaxs),
+                  'image/object/class/text': dataset_util.bytes_list_feature(classes_text),
+                  'image/object/class/label': dataset_util.int64_list_feature(classes)}))
+              writer.write(tf_example.SerializeToString())
+
+
+          cur_filename = ""
+          new_file = False
+          for i in tqdm(range(1, len(groups)), ncols=100):
+              filename = groups['filename'][i]
+              xmin = groups['xmin'][i]
+              xmax = groups['xmax'][i]
+              ymin = groups['ymin'][i]
+              ymax = groups['ymax'][i]
+              class_ = groups['class'][i]
+              width = groups['width'][i]
+              height = groups['height'][i]
+
+              save_flag = False
+              if not cur_filename:
+                  cur_filename = filename
+                  new_file = True
+              elif filename != cur_filename:
+                  cur_filename = filename
+                  save_flag = True
+                  new_file = True
+              else : new_file = False
+
+              if save_flag:
+                  addSample()
+
+              if new_file :
+                  cur_full_filename =os.path.join( os.path.join(images_path,branch), cur_filename)
+                  with tf.io.gfile.GFile(cur_full_filename, 'rb') as fid:
+                      encoded_jpg = fid.read()
+
+                  # encoded_jpg_io = io.BytesIO(encoded_jpg)
+                  # image = Image.open(encoded_jpg_io)
+                  # width, height = image.size
+
+                  # filename = group.filename.encode('utf8')
+                  xmins = []
+                  xmaxs = []
+                  ymins = []
+                  ymaxs = []
+                  classes_text = []
+                  classes = []
 
 
 
+              xmins.append(xmin / width)
+              xmaxs.append(xmax / width)
+              ymins.append(ymin / height)
+              ymaxs.append(ymax / height)
+              classes_text.append(class_.encode('utf8'))
+              classes.append(Utility.getIndex(class_,labels))
 
-# def xml_to_csv(path):
-# 
-#     xml_list = []
-#     for xml_file in glob.glob(path + '/*.xml'):
-#         tree = ET.parse(xml_file)
-#         root = tree.getroot()
-#         for member in root.findall('object'):
-#             value = (root.find('filename').text,
-#                      int(root.find('size')[0].text),
-#                      int(root.find('size')[1].text),
-#                      member[0].text,
-#                      int(member[4][0].text),
-#                      int(member[4][1].text),
-#                      int(member[4][2].text),
-#                      int(member[4][3].text)
-#                      )
-#             xml_list.append(value)
-#     column_name = ['filename', 'width', 'height', 'class', 'xmin', 'ymin', 'xmax', 'ymax']
-#     xml_df = pd.DataFrame(xml_list, columns=column_name)
-#     return xml_df
-# 
-# 
-# def main():
-#     src_path = '/root/datalab'
-#     for folder in ['train','test']:
-#         image_path = os.path.join(src_path, folder)
-#         xml_df = xml_to_csv(image_path)
-#         xml_df.to_csv(os.path.join( src_path, folder + '_labels.csv'), index=None)
-#         print('Successfully converted xml to csv.')
-# 
-# 
-# 
-# 
-# 
-# 
 
+
+          if save_flag:
+              addSample()
+          writer.close()
 
 
   @staticmethod
-  def classLabelIndex(row_label,labels):
-          index = labels.getIndex(row_label)
-          if index >= 0:
-              index += 1
-          else : index = -1
+  def extractCSVLabels(csv_filename):
+      all_labels = pd.read_csv(csv_filename, sep=',', usecols=['class'])
 
-          return index
+      return list(set(all_labels['class']))
 
 
   @staticmethod
-  def split(df, group):
-          data = namedtuple('data', ['filename', 'object'])
-          gb = df.groupby(group)
-          return [data(filename, gb.get_group(x)) for filename, x in zip(gb.groups.keys(), gb.groups)]
-
-  @staticmethod
-  def create_tf_example(group, path,labels):
-          with tf.io.gfile.GFile(os.path.join(path, '{}'.format(group.filename)), 'rb') as fid:
-              encoded_jpg = fid.read()
-          encoded_jpg_io = io.BytesIO(encoded_jpg)
-          image = Image.open(encoded_jpg_io)
-          width, height = image.size
-
-          filename = group.filename.encode('utf8')
-          image_format = b'jpg'
-          xmins = []
-          xmaxs = []
-          ymins = []
-          ymaxs = []
-          classes_text = []
-          classes = []
-
-          for index, row in group.object.iterrows():
-              xmins.append(row['xmin'] / width)
-              xmaxs.append(row['xmax'] / width)
-              ymins.append(row['ymin'] / height)
-              ymaxs.append(row['ymax'] / height)
-              classes_text.append(row['class'].encode('utf8'))
-              classes.append(class_text_to_int(row['class']))
-
-          tf_example = tf.train.Example(features=tf.train.Features(feature={
-              'image/height': dataset_util.int64_feature(height),
-              'image/width': dataset_util.int64_feature(width),
-              'image/filename': dataset_util.bytes_feature(filename),
-              'image/source_id': dataset_util.bytes_feature(filename),
-              'image/encoded': dataset_util.bytes_feature(encoded_jpg),
-              'image/format': dataset_util.bytes_feature(image_format),
-              'image/object/bbox/xmin': dataset_util.float_list_feature(xmins),
-              'image/object/bbox/xmax': dataset_util.float_list_feature(xmaxs),
-              'image/object/bbox/ymin': dataset_util.float_list_feature(ymins),
-              'image/object/bbox/ymax': dataset_util.float_list_feature(ymaxs),
-              'image/object/class/text': dataset_util.bytes_list_feature(classes_text),
-              'image/object/class/label': dataset_util.int64_list_feature(classes),
-          }))
-          return tf_example
-
-  @staticmethod
-  def csv2TFRecord(csv_filename,tf_rec_filename,labels):
-      writer = tf.compat.v1.python_io.getGTTFRecordWriter(tf_rec_filename)
-
-      examples = pd.read_csv(csv_filename)
-      grouped = split(examples, 'filename')
-      for i in tqdm(range(1, len(grouped)), ncols=100):
-          group  = grouped[i]
-          tf_example = create_tf_example(group, image_dir)
-          writer.write(tf_example.SerializeToString())
-
+  def csv2TFRec(images_path, csv_filename,tf_rec_filename,branch,labels):
+      # labels = GTUtilityDET.extractCSVLabels(csv_filename)
+      writer = tf.io.TFRecordWriter(tf_rec_filename)
+      grouped = pd.read_csv(csv_filename)
+      GTUtilityDET.createTFExample(images_path,grouped,tf_rec_filename,labels,branch)
       writer.close()
 
   @staticmethod
-  def csv2TFRecordBatch(src_path,dst_path,labels):
-      GTUtilityDET.csv2TFRecord(os.path.join("train.csv"),os.path.join("train.record"))
-      GTUtilityDET.csv2TFRecord(os.path.join("test.csv"), os.path.join("test.record"))
+  def csv2TFRecBranchs(images_path, csv_path, dst_path,labels):
+
+      if not os.path.exists(dst_path):
+          os.mkdir(dst_path)
+
+      branchs = FileUtility.getFolderFiles(csv_path,'csv',False,False)
+      for branch in branchs :
+         GTUtilityDET.csv2TFRec(images_path, os.path.join(csv_path, branch+'.csv'),os.path.join(dst_path, branch+'.record'),branch,labels)
 
 
  
 
   @staticmethod
-  def copySplitGT2(src_path, dst_path, train_per=0.8, copy_to_root=False, select_type=IndexType.random, clear_dst=False):
-          branchs = ['train', 'test']
+  def copySplitGT2(src_path, dst_path, train_per=0.8, copy_to_root=False, select_type=IndexType.random, clear_dst=False,branchs = ['train', 'test']):
 
-          # if clear_dst:
-          #     FileUtility.createClearFolder(dst_path)
-
-
-          FileUtility.createDstBrach(dst_path, branchs, clear_dst)
+      FileUtility.createDstBrach(dst_path, branchs, clear_dst)
 
 
 
-          branch_state = False
-          if not FileUtility.checkRootFolder(src_path):
-              branch_state = True
-              if copy_to_root == False:
-                  for branch in branchs :
-                     FileUtility.copyFullSubFolders(src_path,os.path.join( dst_path,branch))
+      branch_state = False
+      if not FileUtility.checkRootFolder(src_path):
+          branch_state = True
+          if copy_to_root == False:
+              for branch in branchs :
+                 FileUtility.copyFullSubFolders(src_path,os.path.join( dst_path,branch))
 
-          dst_path_train = os.path.join(dst_path,branchs[0])
-          dst_path_test = os.path.join(dst_path, branchs[1])
+      dst_path_train = os.path.join(dst_path,branchs[0])
+      dst_path_test = os.path.join(dst_path, branchs[1])
 
-          if branch_state and (select_type == IndexType.begin_branch or select_type == IndexType.end_branch):
-              sub_folders = FileUtility.getSubfolders(src_path)
-              for sub_folder in sub_folders:
-                  src_cur_branch = os.path.join(src_path, sub_folder)
-                  dst_cur_branch_train = os.path.join(dst_path_train, sub_folder)
-                  dst_cur_branch_test = os.path.join(dst_path_test, sub_folder)
-
-
-                  image_filenames, gt_filenames = GTUtilityDET.getGtFiles(src_cur_branch)
-                  train_indexs,test_indexs  = GTUtility.getGTIndexs(len(image_filenames), train_per, select_type)
-
-                  src_train_image_filenames, src_train_gt_filenames = GTUtilityDET.getGTFiles(image_filenames, gt_filenames, train_indexs)
-                  src_test_image_filenames, src_test_gt_filenames = GTUtilityDET.getGTFiles(image_filenames, gt_filenames, test_indexs)
+      if branch_state and (select_type == IndexType.begin_branch or select_type == IndexType.end_branch):
+          sub_folders = FileUtility.getSubfolders(src_path)
+          for sub_folder in sub_folders:
+              src_cur_branch = os.path.join(src_path, sub_folder)
+              dst_cur_branch_train = os.path.join(dst_path_train, sub_folder)
+              dst_cur_branch_test = os.path.join(dst_path_test, sub_folder)
 
 
-                  if copy_to_root:
-                      dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, src_cur_branch, dst_path_train,
-                                                                         copy_to_root)
-                      dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, src_cur_branch, dst_path_train,
-                                                                      copy_to_root)
-
-                      dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, src_cur_branch,
-                                                                               dst_path_test,
-                                                                               copy_to_root)
-                      dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, src_cur_branch,
-                                                                            dst_path_test,
-                                                                            copy_to_root)
-
-
-                  else:
-                      dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, src_cur_branch,
-                                                                         dst_cur_branch_train, copy_to_root)
-                      dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, src_cur_branch, dst_cur_branch_train,
-                                                                      copy_to_root)
-
-                      dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, src_cur_branch,
-                                                                         dst_cur_branch_test, copy_to_root)
-                      dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, src_cur_branch, dst_cur_branch_test,
-                                                                      copy_to_root)
-
-                  FileUtility.copyFilesByName(src_train_image_filenames, dst_train_image_filenames)
-                  FileUtility.copyFilesByName(src_train_gt_filenames, dst_train_gt_filenames)
-                  FileUtility.copyFilesByName(src_test_image_filenames, dst_test_image_filenames)
-                  FileUtility.copyFilesByName(src_test_gt_filenames, dst_test_gt_filenames)
-
-
-          else:
-              image_filenames, gt_filenames = GTUtilityDET.getGtFiles(src_path)
-              train_indexs, test_indexs = GTUtility.getGTIndexs(len(image_filenames), train_per, select_type)
+              image_filenames, gt_filenames = GTUtilityDET.getGtFiles(src_cur_branch)
+              train_indexs,test_indexs  = GTUtility.getGTIndexs(len(image_filenames), train_per, select_type)
 
               src_train_image_filenames, src_train_gt_filenames = GTUtilityDET.getGTFiles(image_filenames, gt_filenames, train_indexs)
-              src_test_image_filenames, src_test_gt_filenames = GTUtilityDET.getGTFiles(image_filenames, gt_filenames,test_indexs)
-
-              dst_path_train = os.path.join(dst_path,branchs[0])
-              dst_path_test = os.path.join(dst_path, branchs[1])
+              src_test_image_filenames, src_test_gt_filenames = GTUtilityDET.getGTFiles(image_filenames, gt_filenames, test_indexs)
 
 
-              dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, src_path, dst_path_train, copy_to_root)
-              dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, src_path, dst_path_train, copy_to_root)
+              if copy_to_root:
+                  dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, src_cur_branch, dst_path_train,
+                                                                     copy_to_root)
+                  dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, src_cur_branch, dst_path_train,
+                                                                  copy_to_root)
 
-              dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, src_path, dst_path_test, copy_to_root)
-              dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, src_path, dst_path_test, copy_to_root)
+                  dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, src_cur_branch,
+                                                                           dst_path_test,
+                                                                           copy_to_root)
+                  dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, src_cur_branch,
+                                                                        dst_path_test,
+                                                                        copy_to_root)
+
+
+              else:
+                  dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, src_cur_branch,
+                                                                     dst_cur_branch_train, copy_to_root)
+                  dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, src_cur_branch, dst_cur_branch_train,
+                                                                  copy_to_root)
+
+                  dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, src_cur_branch,
+                                                                     dst_cur_branch_test, copy_to_root)
+                  dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, src_cur_branch, dst_cur_branch_test,
+                                                                  copy_to_root)
 
               FileUtility.copyFilesByName(src_train_image_filenames, dst_train_image_filenames)
               FileUtility.copyFilesByName(src_train_gt_filenames, dst_train_gt_filenames)
               FileUtility.copyFilesByName(src_test_image_filenames, dst_test_image_filenames)
               FileUtility.copyFilesByName(src_test_gt_filenames, dst_test_gt_filenames)
+
+
+      else:
+          image_filenames, gt_filenames = GTUtilityDET.getGtFiles(src_path)
+          train_indexs, test_indexs = GTUtility.getGTIndexs(len(image_filenames), train_per, select_type)
+
+          src_train_image_filenames, src_train_gt_filenames = GTUtilityDET.getGTFiles(image_filenames, gt_filenames, train_indexs)
+          src_test_image_filenames, src_test_gt_filenames = GTUtilityDET.getGTFiles(image_filenames, gt_filenames,test_indexs)
+
+          dst_path_train = os.path.join(dst_path,branchs[0])
+          dst_path_test = os.path.join(dst_path, branchs[1])
+
+
+          dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, src_path, dst_path_train, copy_to_root)
+          dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, src_path, dst_path_train, copy_to_root)
+
+          dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, src_path, dst_path_test, copy_to_root)
+          dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, src_path, dst_path_test, copy_to_root)
+
+          FileUtility.copyFilesByName(src_train_image_filenames, dst_train_image_filenames)
+          FileUtility.copyFilesByName(src_train_gt_filenames, dst_train_gt_filenames)
+          FileUtility.copyFilesByName(src_test_image_filenames, dst_test_image_filenames)
+          FileUtility.copyFilesByName(src_test_gt_filenames, dst_test_gt_filenames)
 
 
   @staticmethod
@@ -726,6 +761,15 @@ class GTUtilityDET:
 
             FileUtility.copyFilesByName(src_image_filenames, dst_image_filenames)
             FileUtility.copyFilesByName(src_gt_filenames, dst_gt_filenames)
+
+  @staticmethod
+  def convertGT2TFRec(src_path,dst_path,labels, train_per = 0.8,clear_dst = True):
+      GTUtilityDET.copySplitGT2(src_path,dst_path,train_per,True,clear_dst = clear_dst)
+      GTUtilityDET.GT2CsvBranchs(dst_path,dst_path)
+      GTUtilityDET.csv2TFRecBranchs(dst_path, dst_path, dst_path,labels)
+
+
+
 
 
 

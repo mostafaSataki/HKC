@@ -154,6 +154,14 @@ class Utility:
 
       FileUtility.copyFilesByName(src_image_filenames, dst_image_filenames)
 
+  @staticmethod
+  def getIndex(label,labels):
+    try:
+      index_value = labels.index(label)
+    except ValueError:
+      index_value = -1
+    return index_value
+
 
 
 

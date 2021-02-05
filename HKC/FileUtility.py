@@ -624,6 +624,9 @@ class FileUtility:
       if clear_dst :
           FileUtility.deleteFolderContents(dst_path)
 
+      if not os.path.exists(dst_path):
+        os.mkdir(dst_path)
+
       for brach in branchs:
           train_path = os.path.join(dst_path,brach)
           if not os.path.exists(train_path):
