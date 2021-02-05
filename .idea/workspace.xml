@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="85c579f5-71f4-4266-ba6f-d0e7aabb1114" name="Default Changelist" comment="Merge remote-tracking branch 'origin/master'">
+    <list default="true" id="85c579f5-71f4-4266-ba6f-d0e7aabb1114" name="Default Changelist" comment="batch copy and split GT">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/HKC/FileUtility.py" beforeDir="false" afterPath="$PROJECT_DIR$/HKC/FileUtility.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/HKC/GTUtility.py" beforeDir="false" afterPath="$PROJECT_DIR$/HKC/GTUtility.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/HKC/GT/RegionBase.py" beforeDir="false" afterPath="$PROJECT_DIR$/HKC/GT/RegionBase.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/HKC/GTUtilityDET.py" beforeDir="false" afterPath="$PROJECT_DIR$/HKC/GTUtilityDET.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/HKC/Utility.py" beforeDir="false" afterPath="$PROJECT_DIR$/HKC/Utility.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/HKC/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/HKC/__init__.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,7 +37,7 @@
       <option name="presentableId" value="Default" />
       <updated>1612169858920</updated>
       <workItem from="1612169860041" duration="1582000" />
-      <workItem from="1612176086056" duration="6418000" />
+      <workItem from="1612176086056" duration="11535000" />
     </task>
     <task id="LOCAL-00001" summary="Initial version&#10;&#10;init commit">
       <created>1612171345327</created>
@@ -68,7 +67,14 @@
       <option name="project" value="LOCAL" />
       <updated>1612179823362</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="batch copy and split GT">
+      <created>1612292186368</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1612292186368</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -88,6 +94,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial version&#10;&#10;init commit" />
     <MESSAGE value="Merge remote-tracking branch 'origin/master'" />
-    <option name="LAST_COMMIT_MESSAGE" value="Merge remote-tracking branch 'origin/master'" />
+    <MESSAGE value="batch copy and split GT" />
+    <option name="LAST_COMMIT_MESSAGE" value="batch copy and split GT" />
   </component>
 </project>
