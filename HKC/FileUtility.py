@@ -16,6 +16,8 @@ from .Utility import  *
 from pathlib import Path
 import re
 from tqdm import tqdm
+import tarfile
+import urllib.request
 
 class FileUtility:
   @staticmethod
@@ -632,5 +634,33 @@ class FileUtility:
           if not os.path.exists(train_path):
               os.mkdir(train_path)
 
+  @staticmethod
+  def getFilenameFromURL(URL):
+      a = urlparse(URL)
+      return os.path.basename(a.path)
 
+
+
+
+  @staticmethod
+  def downloadURLExtract(URL, dst_path,clear_file = False):
+
+    if not os.path.exists(dst_path):
+      os.mkdir(dst_path)
+
+    filename = FileUtility.getFilenameFromURL(URL)
+
+    dst_filename = os.path.join(dst_path, filename)
+
+    if not os.path.exists(dst_filename):
+      urllib.request.urlretrieve(URL, dst_filename)
+
+
+    if FileUtility.changeFileExt(dst_filename,'tar.gz') :
+        tar = tarfile.open(dst_filename)
+        tar.extractall(dst_path)
+        tar.close()
+
+    if clear_file :
+      os.remove(dst_filename)
 
