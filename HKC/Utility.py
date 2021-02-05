@@ -2,6 +2,7 @@ from .MatUtility import *
 import  random
 import  os
 from enum import Enum
+from urllib.parse import urlparse
 
 
 class IndexType(Enum):
@@ -161,6 +162,21 @@ class Utility:
     except ValueError:
       index_value = -1
     return index_value
+
+  @staticmethod
+  def readField(str,field_value):
+     pos = str.find(field_value)
+
+     flag = False
+     result = ""
+
+     if pos != -1 :
+       result =  str[pos + len(field_value):-1]
+       flag = True
+
+     return flag,result
+
+
 
 
 

@@ -507,6 +507,13 @@ class GTUtilityDET:
   #         return [data(filename, gb.get_group(x)) for filename, x in zip(gb.groups.keys(), gb.groups)]
 
   @staticmethod
+  def getIndex(label,labels):
+      index =  Utility.getIndex(class_, labels)
+      if index >= 0 :
+          index += 1
+      return index
+
+  @staticmethod
   def createTFExample(images_path,groups,tf_rec_filename ,labels,branch):
 
           writer = tf.io.TFRecordWriter(tf_rec_filename)
@@ -588,7 +595,7 @@ class GTUtilityDET:
               ymins.append(ymin / height)
               ymaxs.append(ymax / height)
               classes_text.append(class_.encode('utf8'))
-              classes.append(Utility.getIndex(class_,labels))
+              classes.append(GTUtilityDET.getIndex(class_,labels))
 
 
 
@@ -768,24 +775,24 @@ class GTUtilityDET:
       GTUtilityDET.GT2CsvBranchs(dst_path,dst_path)
       GTUtilityDET.csv2TFRecBranchs(dst_path, dst_path, dst_path,labels)
 
+  @staticmethod
+  def createLabelMap(dst_filename, labels):
+      with open(dst_filename, "w") as file:
+          for i, label in enumerate(labels):
+              str = 'item {{\n\tid: {0}\n\tname: {1}\n}}\n'.format(i + 1, label)
+              file.write(str)
 
+  @staticmethod
+  def readLabelMap(filename):
+      result = []
+      with open(filename, 'r') as file:
+          lines = file.readlines()
 
+      for line in lines:
+          flag, res = Utility.readField(line, 'name: ')
+          if flag:
+              print(res)
+              result.append(res)
 
-
-
-
-
-      
-      
-
-
-
-
-
-
-
-
-
-
-
+      return result
 
