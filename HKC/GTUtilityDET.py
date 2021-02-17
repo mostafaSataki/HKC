@@ -798,8 +798,9 @@ class GTUtilityDET:
 
   @staticmethod
   def installObjectDetectionInColab():
-      os.chdir('/root')
+
       subprocess.call(['git', 'clone', '--quiet', 'https://github.com/tensorflow/models.git'])
+      os.chdir('/root/models')
       subprocess.call(['apt-get', 'install', '-qq', 'protobuf-compiler', 'python-tk'])
       subprocess.call(['pip', 'install', '-q', 'Cython', 'contextlib2', 'pillow', 'lxml', 'matplotlib', 'PyDrive'])
       subprocess.call(['pip', 'install', '-q', 'pycocotools'])
