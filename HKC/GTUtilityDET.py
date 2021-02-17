@@ -802,7 +802,8 @@ class GTUtilityDET:
       subprocess.call(['apt-get', 'install', '-qq', 'protobuf-compiler', 'python-tk'])
       subprocess.call(['pip', 'install', '-q', 'Cython', 'contextlib2', 'pillow', 'lxml', 'matplotlib', 'PyDrive'])
       subprocess.call(['pip', 'install', '-q', 'pycocotools'])
-      subprocess.call(['cd', '~/models/research'])
+      os.chdir('/root/models/research')
+      # subprocess.call(['cd', '~/models/research'])
       subprocess.call(['protoc', 'object_detection/protos/*.proto', '--python_out', '.'])
 
       subprocess.call(['pip', 'install', 'pascal_voc_writer'])
@@ -816,7 +817,8 @@ class GTUtilityDET:
 
       subprocess.call(['python', '/root/models/research/object_detection/builders/model_builder_test.py'])
 
-      subprocess.call(['cd', '/root/models/research'])
+      os.chdir('/root/models/research')
+      # subprocess.call(['cd', '/root/models/research'])
       subprocess.call(['python', 'setup.py', 'build'])
       subprocess.call(['sudo', 'python', 'setup.py', 'install'])
 

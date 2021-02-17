@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="85c579f5-71f4-4266-ba6f-d0e7aabb1114" name="Default Changelist" comment="add Colab utility">
+    <list default="true" id="85c579f5-71f4-4266-ba6f-d0e7aabb1114" name="Default Changelist" comment="Add requirements to setup.py">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/HKC/GTUtilityDET.py" beforeDir="false" afterPath="$PROJECT_DIR$/HKC/GTUtilityDET.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -35,7 +35,7 @@
       <updated>1612169858920</updated>
       <workItem from="1612169860041" duration="1582000" />
       <workItem from="1612176086056" duration="14201000" />
-      <workItem from="1613540867607" duration="1825000" />
+      <workItem from="1613540867607" duration="3057000" />
     </task>
     <task id="LOCAL-00001" summary="Initial version&#10;&#10;init commit">
       <created>1612171345327</created>
@@ -93,7 +93,14 @@
       <option name="project" value="LOCAL" />
       <updated>1612558993539</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Add requirements to setup.py">
+      <created>1613550234063</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1613550234063</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -118,6 +125,7 @@
     <MESSAGE value="add method convertGT2TFRec for convert GT images to tfrecord data." />
     <MESSAGE value="add LabelMap utility" />
     <MESSAGE value="add Colab utility" />
-    <option name="LAST_COMMIT_MESSAGE" value="add Colab utility" />
+    <MESSAGE value="Add requirements to setup.py" />
+    <option name="LAST_COMMIT_MESSAGE" value="Add requirements to setup.py" />
   </component>
 </project>
