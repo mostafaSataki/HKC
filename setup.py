@@ -7,4 +7,8 @@ author='Mostafa Sataki',
 author_email='sataki.mostafa@email.com',
 license='MIT',
 packages=['HKC'],
+install_requires=[
+    'selenium',
+    'object-detection'
+    ],
 zip_safe=False)
