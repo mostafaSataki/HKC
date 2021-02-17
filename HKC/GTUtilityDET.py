@@ -770,7 +770,7 @@ class GTUtilityDET:
             FileUtility.copyFilesByName(src_gt_filenames, dst_gt_filenames)
 
   @staticmethod
-  def convertGT2TFRec(src_path,dst_path,labels, train_per = 0.8,clear_dst = True):
+  def convertImages2TFRec(src_path,dst_path,labels, train_per = 0.8,clear_dst = True):
       GTUtilityDET.copySplitGT2(src_path,dst_path,train_per,True,clear_dst = clear_dst)
       GTUtilityDET.GT2CsvBranchs(dst_path,dst_path)
       GTUtilityDET.csv2TFRecBranchs(dst_path, dst_path, dst_path,labels)
@@ -829,10 +829,6 @@ class GTUtilityDET:
       subprocess.call(['load_ext', 'tensorboard'])
       subprocess.call(['tensorboard', '--logdir', trained_path])
 
-  @staticmethod
-  def mountGDriveInColb():
-      from google.colab import drive
-      drive.mount('/content/drive')
 
   @staticmethod
   def initalizeColabForObjDetection(trained_path):
