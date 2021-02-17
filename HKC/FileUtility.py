@@ -18,6 +18,8 @@ import re
 from tqdm import tqdm
 import tarfile
 import urllib.request
+from zipfile import ZipFile
+
 
 class FileUtility:
   @staticmethod
@@ -663,4 +665,19 @@ class FileUtility:
 
     if clear_file :
       os.remove(dst_filename)
+
+  @staticmethod
+  def extractFile(cmp_filename,dst_path):
+    ext = FileUtility.getFileExt(cmp_filename)
+
+    if ext == 'zip'.lower():
+      with ZipFile(cmp_filename, 'r') as zipObj:
+        zipObj.extractall(dst_path)
+
+
+  @staticmethod
+  def compressFile(dst_path,cmp_filename):
+    shutil.make_archive(cmp_filename, 'zip', dst_path)
+
+
 
