@@ -508,7 +508,7 @@ class GTUtilityDET:
 
   @staticmethod
   def getIndex(label,labels):
-      index =  Utility.getIndex(class_, labels)
+      index =  Utility.getIndex(label, labels)
       if index >= 0 :
           index += 1
       return index
@@ -778,10 +778,12 @@ class GTUtilityDET:
             FileUtility.copyFilesByName(src_gt_filenames, dst_gt_filenames)
 
   @staticmethod
-  def convertImages2TFRec(src_media, dst_path, labels, train_per = 0.8, clear_dst = True):
+  def convertImages2TFRec(src_media, dst_path, lablemap_filename,labels, train_per = 0.8, clear_dst = True):
       GTUtilityDET.copySplitGT2(src_media, dst_path, train_per, True, clear_dst = clear_dst)
       GTUtilityDET.GT2CsvBranchs(dst_path,dst_path)
-      GTUtilityDET.csv2TFRecBranchs(dst_path, dst_path, dst_path,labels)
+
+      lbls = GTUtilityDET.getLabelMap(lablemap_filename,labels)
+      GTUtilityDET.csv2TFRecBranchs(dst_path, dst_path, dst_path,lbls)
 
   @staticmethod
   def createLabelMap(dst_filename, labels):
@@ -843,6 +845,18 @@ class GTUtilityDET:
       GTUtilityDET.mountGDriveInColb()
       GTUtilityDET.installObjectDetectionInColab()
       GTUtilityDET.loadTensorboardInColab(trained_path)
+
+  @staticmethod
+  def getLabelMap(filename, input_labels =None):
+
+      result = []
+      if os.path.exists(filename):
+          result = GTUtilityDET.readLabelMap(filename)
+      else :
+          GTUtilityDET.createLabelMap(filename,input_labels)
+          result = input_labels
+
+      return result
 
 
 
