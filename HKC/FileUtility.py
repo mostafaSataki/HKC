@@ -19,6 +19,12 @@ from tqdm import tqdm
 import tarfile
 import urllib.request
 from zipfile import ZipFile
+import tempfile
+from  enum import  Enum
+
+class MediaType(Enum):
+  folder = 1
+  file = 2
 
 
 class FileUtility:
@@ -667,17 +673,37 @@ class FileUtility:
       os.remove(dst_filename)
 
   @staticmethod
-  def extractFile(cmp_filename,dst_path):
+  def extractFile(cmp_filename,dst_path =''):
+
+    if dst_path == '':
+        dst_path = tempfile.mkdtemp()
+
     ext = FileUtility.getFileExt(cmp_filename)
 
     if ext == 'zip'.lower():
       with ZipFile(cmp_filename, 'r') as zipObj:
         zipObj.extractall(dst_path)
+    elif ext =='tar.gz' :
+        tar = tarfile.open(cmp_filename)
+        tar.extractall(dst_path)
+        tar.close()
+
+    return dst_path
+
+
 
 
   @staticmethod
   def compressFile(dst_path,cmp_filename):
     shutil.make_archive(cmp_filename, 'zip', dst_path)
+
+
+  @staticmethod
+  def getMediaInfo(media):
+    if os.path.isdir(media):
+      return MediaType.folder,None
+    elif os.path.isfile(media):
+      return MediaType.file,FileUtility.getFileExt(media)
 
 
 
