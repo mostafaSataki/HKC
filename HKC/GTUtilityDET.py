@@ -779,11 +779,16 @@ class GTUtilityDET:
 
   @staticmethod
   def convertImages2TFRec(src_media, dst_path, lablemap_filename,labels, train_per = 0.8, clear_dst = True):
-      GTUtilityDET.copySplitGT2(src_media, dst_path, train_per, True, clear_dst = clear_dst)
-      GTUtilityDET.GT2CsvBranchs(dst_path,dst_path)
+
+      temp_path = tempfile.mkdtemp()
+
+      GTUtilityDET.copySplitGT2(src_media, temp_path, train_per, True, clear_dst = clear_dst)
+      GTUtilityDET.GT2CsvBranchs(temp_path,temp_path)
 
       lbls = GTUtilityDET.getLabelMap(lablemap_filename,labels)
-      GTUtilityDET.csv2TFRecBranchs(dst_path, dst_path, dst_path,lbls)
+      GTUtilityDET.csv2TFRecBranchs(temp_path, temp_path, dst_path,lbls)
+
+      FileUtility.createClearFolder(temp_path)
 
   @staticmethod
   def createLabelMap(dst_filename, labels):
