@@ -633,26 +633,30 @@ class GTUtilityDET:
  
 
   @staticmethod
-  def copySplitGT2(src_path, dst_path, train_per=0.8, copy_to_root=False, select_type=IndexType.random, clear_dst=False,branchs = ['train', 'test']):
+  def copySplitGT2(src_media, dst_path, train_per=0.8, copy_to_root=False, select_type=IndexType.random, clear_dst=False, branchs = ['train', 'test']):
+      media = src_media
+      media_type ,ext = FileUtility.getMediaInfo(src_media)
+      if media_type == MediaType.file and ext == 'zip':
+          media =  FileUtility.extractFile(src_media)
 
       FileUtility.createDstBrach(dst_path, branchs, clear_dst)
 
 
 
       branch_state = False
-      if not FileUtility.checkRootFolder(src_path):
+      if not FileUtility.checkRootFolder(media):
           branch_state = True
           if copy_to_root == False:
               for branch in branchs :
-                 FileUtility.copyFullSubFolders(src_path,os.path.join( dst_path,branch))
+                 FileUtility.copyFullSubFolders(media, os.path.join(dst_path, branch))
 
       dst_path_train = os.path.join(dst_path,branchs[0])
       dst_path_test = os.path.join(dst_path, branchs[1])
 
       if branch_state and (select_type == IndexType.begin_branch or select_type == IndexType.end_branch):
-          sub_folders = FileUtility.getSubfolders(src_path)
+          sub_folders = FileUtility.getSubfolders(media)
           for sub_folder in sub_folders:
-              src_cur_branch = os.path.join(src_path, sub_folder)
+              src_cur_branch = os.path.join(media, sub_folder)
               dst_cur_branch_train = os.path.join(dst_path_train, sub_folder)
               dst_cur_branch_test = os.path.join(dst_path_test, sub_folder)
 
@@ -696,7 +700,7 @@ class GTUtilityDET:
 
 
       else:
-          image_filenames, gt_filenames = GTUtilityDET.getGtFiles(src_path)
+          image_filenames, gt_filenames = GTUtilityDET.getGtFiles(media)
           train_indexs, test_indexs = GTUtility.getGTIndexs(len(image_filenames), train_per, select_type)
 
           src_train_image_filenames, src_train_gt_filenames = GTUtilityDET.getGTFiles(image_filenames, gt_filenames, train_indexs)
@@ -706,16 +710,20 @@ class GTUtilityDET:
           dst_path_test = os.path.join(dst_path, branchs[1])
 
 
-          dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, src_path, dst_path_train, copy_to_root)
-          dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, src_path, dst_path_train, copy_to_root)
+          dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, media, dst_path_train, copy_to_root)
+          dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, media, dst_path_train, copy_to_root)
 
-          dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, src_path, dst_path_test, copy_to_root)
-          dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, src_path, dst_path_test, copy_to_root)
+          dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, media, dst_path_test, copy_to_root)
+          dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, media, dst_path_test, copy_to_root)
 
           FileUtility.copyFilesByName(src_train_image_filenames, dst_train_image_filenames)
           FileUtility.copyFilesByName(src_train_gt_filenames, dst_train_gt_filenames)
           FileUtility.copyFilesByName(src_test_image_filenames, dst_test_image_filenames)
           FileUtility.copyFilesByName(src_test_gt_filenames, dst_test_gt_filenames)
+
+
+      if media_type == MediaType.file and ext == "zip":
+           shutil.rmtree(media)
 
 
   @staticmethod
@@ -770,8 +778,8 @@ class GTUtilityDET:
             FileUtility.copyFilesByName(src_gt_filenames, dst_gt_filenames)
 
   @staticmethod
-  def convertImages2TFRec(src_path,dst_path,labels, train_per = 0.8,clear_dst = True):
-      GTUtilityDET.copySplitGT2(src_path,dst_path,train_per,True,clear_dst = clear_dst)
+  def convertImages2TFRec(src_media, dst_path, labels, train_per = 0.8, clear_dst = True):
+      GTUtilityDET.copySplitGT2(src_media, dst_path, train_per, True, clear_dst = clear_dst)
       GTUtilityDET.GT2CsvBranchs(dst_path,dst_path)
       GTUtilityDET.csv2TFRecBranchs(dst_path, dst_path, dst_path,labels)
 
