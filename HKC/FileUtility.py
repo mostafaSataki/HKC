@@ -18,7 +18,7 @@ import re
 from tqdm import tqdm
 import tarfile
 import urllib.request
-from zipfile import ZipFile
+import zipfile
 import tempfile
 from  enum import  Enum
 
@@ -35,6 +35,16 @@ class FileUtility:
   @staticmethod
   def getVideoExtensions():
     return ['mp4', 'avi',  'mov']
+
+
+  @staticmethod
+  def removeFileExt(src_filename):
+    return src_filename[0:-len(FileUtility.getFileExt(src_filename))-1]
+
+  @staticmethod
+  def removeFilename(src_filename):
+     p,_,_ =  FileUtility.getFileTokens(src_filename)
+     return p
 
 
   @staticmethod
@@ -57,6 +67,11 @@ class FileUtility:
   def checkTifImage(filename):
     ext = FileUtility.getFileExt(filename).lower()
     return ext in FileUtility.getTifExtensions()
+
+  @staticmethod
+  def getNextFolder(src_path):
+    pass
+
 
   @staticmethod
   def getFileExt(filename):
@@ -286,10 +301,13 @@ class FileUtility:
   def getFileTokens(file_name):
     path, name = os.path.split(file_name)
     x = name.rfind(".")
-    f_name = name[0:x]
-    ext = name[x:]
+    if x == -1:
+      f_name = ''
+      ext =''
+    else :
+      f_name = name[0:x]
+      ext = name[x:]
 
-    # f_name, ext = name.split(".")
     return path, f_name,  ext
 
   @staticmethod
@@ -441,7 +459,12 @@ class FileUtility:
     elif os.path.isdir(path):
       return os.path.basename(path)
 
-
+  @staticmethod
+  def getUpFolder(src_path):
+    if os.path.isdir(src_path):
+       return src_path[0:-len(FileUtility.upFolderName(src_path))-1]
+    elif os.path.isfile(src_path):
+       return FileUtility.removeFilename(src_path)
 
   @staticmethod
   def saveList2File(list,filename):
@@ -676,13 +699,19 @@ class FileUtility:
   def extractFile(cmp_filename,dst_path =''):
 
     if dst_path == '':
-        dst_path = tempfile.mkdtemp()
+        dst_path = FileUtility.removeFilename(cmp_filename)
+
+    if not os.path.exists(dst_path):
+      os.makedirs(dst_path)
+
 
     ext = FileUtility.getFileExt(cmp_filename)
 
     if ext == 'zip'.lower():
-      with ZipFile(cmp_filename, 'r') as zipObj:
-        zipObj.extractall(dst_path)
+      with zipfile.ZipFile(cmp_filename, "r") as zip_ref:
+        zip_ref.extractall(dst_path)
+
+
     elif ext =='tar.gz' :
         tar = tarfile.open(cmp_filename)
         tar.extractall(dst_path)
@@ -694,8 +723,21 @@ class FileUtility:
 
 
   @staticmethod
-  def compressFile(dst_path,cmp_filename):
-    shutil.make_archive(cmp_filename, 'zip', dst_path)
+  def compressFile(src_path, cmp_filename= ''):
+    if cmp_filename == '':
+      cmp_filename = os.path.join( FileUtility.getUpFolder(src_path),FileUtility.upFolderName(src_path)+'.zip')
+
+
+    ext = FileUtility.getFileExt(cmp_filename).lower()
+
+
+
+    if ext == 'zip':
+      cmp_filename = FileUtility.removeFileExt(cmp_filename)
+
+    f = FileUtility.upFolderName(cmp_filename)
+
+    shutil.make_archive(cmp_filename, 'zip',FileUtility.getUpFolder(src_path),f)
 
 
   @staticmethod
@@ -704,6 +746,7 @@ class FileUtility:
       return MediaType.folder,None
     elif os.path.isfile(media):
       return MediaType.file,FileUtility.getFileExt(media)
+
 
 
 
