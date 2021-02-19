@@ -327,7 +327,7 @@ class GTUtilityDET:
       
 
   @staticmethod
-  def flipHorz(image_filename):
+  def flipHorz(image_filename,jpeg_quality = 30):
       gt,gt_filename = GTUtilityDET.loadGT(image_filename)
       
       image = cv2.imread(image_filename)
@@ -336,11 +336,11 @@ class GTUtilityDET:
           obj.region_.setCvRect( RectUtility.flipHorzRect(obj.region_.getCvRect(),image.shape))
 
       image = cv2.flip(image,1)
-      cv2.imwrite(image_filename,image,[cv2.IMWRITE_JPEG_QUALITY,30])
+      cv2.imwrite(image_filename,image,[cv2.IMWRITE_JPEG_QUALITY,jpeg_quality])
       gt.save(gt_filename)
 
   @staticmethod
-  def flipHorzBatch(src_path, dst_path, post_fix=""):
+  def flipHorzBatch(src_path, dst_path, post_fix="",jpeg_quality = 30):
 
       FileUtility.copyFullSubFolders(src_path, dst_path)
 
@@ -358,7 +358,7 @@ class GTUtilityDET:
 
       for i in tqdm(range(1,len(dst_image_filesname)), ncols=100):
           dst_image_filename = dst_image_filesname[i]
-          GTUtilityDET.flipHorz(dst_image_filename)
+          GTUtilityDET.flipHorz(dst_image_filename,jpeg_quality)
 
 
   @staticmethod
@@ -862,6 +862,40 @@ class GTUtilityDET:
           result = input_labels
 
       return result
+
+  @staticmethod
+  def prepareImages(src_path,dst_path = None, dst_size = None,jpeg_quality = 30 ,gray = False,flip_horz = False):
+      if dst_path == '':
+          dst_path = src_path
+      else :
+          FileUtility.createClearFolder(dst_path)
+
+      dst_flag = False
+      if dst_size :
+          CvUtility.resize(src_path, dst_path, dst_size,jpeg_quality)
+          dst_flag = True
+
+
+      if flip_horz :
+          if dst_flag:
+             GTUtilityDET.flipHorzBatch(dst_path,dst_path)
+          else:
+              GTUtilityDET.flipHorzBatch(src_path,dst_path,jpeg_quality)
+              dst_flag = True
+      if gray:
+          if dst_flag:
+              CvUtility.toGray(dst_path,dst_path)
+          else :
+              CvUtility.toGray(src_path, dst_path)
+
+
+
+
+
+
+
+
+
 
 
 

@@ -227,7 +227,7 @@ class CvUtility:
       cv2.imwrite(dst_file,dst_image)
 
   @staticmethod
-  def resize(src_path,dst_path,dst_size, post_fix = ""):
+  def resize(src_path,dst_path,dst_size, post_fix = "",jpeg_quality = 30):
     src_files = FileUtility.getFolderImageFiles(src_path)
     dst_files = FileUtility.getDstFilenames2(src_files,src_path,dst_path)
 
@@ -243,7 +243,7 @@ class CvUtility:
       src_image = cv2.imread(src_filename)
       dst_image = cv2.resize(src_image,dst_size)
 
-      cv2.imwrite(dst_filename,dst_image,[cv2.IMWRITE_JPEG_QUALITY, 30])
+      cv2.imwrite(dst_filename,dst_image,[cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
 
   @staticmethod
   def toGray(src_path,dst_path, post_fix = ""):

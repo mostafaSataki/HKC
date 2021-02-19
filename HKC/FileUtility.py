@@ -747,6 +747,10 @@ class FileUtility:
     elif os.path.isfile(media):
       return MediaType.file,FileUtility.getFileExt(media)
 
+  @staticmethod
+  def isFolderEmpty(src_path):
+    return len(os.listdir(src_path)) != 0
+
 
 
 
