@@ -29,3 +29,7 @@ class RectUtility:
     x2p = shape[1] - r2[0]
 
     return RectUtility.twoPointsToRect([x1p,r2[1],x2p,r2[3]])
+
+  @staticmethod
+  def resize(rect,scale):
+    return ( int(rect[0] * scale[0]),  int(rect[1] * scale[1]) ,  int(rect[2] * scale[0]),  int(rect[3] * scale[1]))

@@ -449,7 +449,9 @@ class FileUtility:
   @staticmethod
   def deleteFolderContents(path):
     if os.path.exists(path):
-       shutil.rmtree(path)
+       shutil.rmtree(path, ignore_errors=True)
+       while os.path.exists(path):
+         pass
     os.mkdir(path)
 
   @staticmethod

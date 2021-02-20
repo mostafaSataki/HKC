@@ -11,6 +11,13 @@ from scipy.spatial import distance as dist
 
 class CvUtility:
 
+  @staticmethod
+  def resizeImage(src_image,size,interpolation = None):
+
+      scale = (float(size[0] / src_image.shape[1] ) , float(size[1]) / src_image.shape[0]  )
+
+      dst_image = cv2.resize(src_image,size,interpolation=interpolation)
+      return dst_image,scale
 
   @staticmethod
   def imreadU(filename,flag):
@@ -236,7 +243,7 @@ class CvUtility:
     if post_fix != "":
        dst_files = FileUtility.changeFilesnamePostfix(dst_files,post_fix)
 
-    for i in tqdm(range(1, len(src_files)), ncols=100):
+    for i in tqdm(range( len(src_files)), ncols=100):
       src_filename = src_files[i]
       dst_filename = dst_files[i]
 
@@ -246,16 +253,19 @@ class CvUtility:
       cv2.imwrite(dst_filename,dst_image,[cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
 
   @staticmethod
-  def toGray(src_path,dst_path, post_fix = ""):
+  def toGray(src_path,dst_path, post_fix = "",jpeg_quality = 30):
     src_files = FileUtility.getFolderImageFiles(src_path)
-    dst_files = FileUtility.getDstFilenames2(src_files,src_path,dst_path)
+    if src_path != dst_path :
+      dst_files = FileUtility.getDstFilenames2(src_files,src_path,dst_path)
+      FileUtility.copyFullSubFolders(src_path, dst_path)
+    else : dst_files = src_files
 
-    FileUtility.copyFullSubFolders(src_path,dst_path)
+
 
     if post_fix != "":
        dst_files = FileUtility.changeFilesnamePostfix(dst_files,post_fix)
 
-    for i in tqdm(range(1, len(src_files)), ncols=100):
+    for i in tqdm(range(len(src_files)), ncols=100):
       src_filename = src_files[i]
       dst_filename = dst_files[i]
 
@@ -263,7 +273,7 @@ class CvUtility:
 
       dst_image = cv2.cvtColor(src_image,cv2.COLOR_BGR2GRAY);
 
-      cv2.imwrite(dst_filename,dst_image,[cv2.IMWRITE_JPEG_QUALITY, 30])
+      cv2.imwrite(dst_filename,dst_image,[cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
 
 
   @staticmethod
@@ -523,7 +533,7 @@ class CvUtility:
     ref_image_filename = image_filesname[ref_id]
     ref_img = cv2.imread(ref_image_filename)
 
-    for i in tqdm(range(1,len(image_filesname)), ncols=100):
+    for i in tqdm(range(len(image_filesname)), ncols=100):
       cur_img = cv2.imread(image_filesname[i])
       psnr = CvUtility.getPSNR(ref_img, cur_img)
       if psnr < similarity_thresh:
@@ -637,7 +647,7 @@ class CvUtility:
     if post_fix != "":
       dst_files = FileUtility.changeFilesnamePostfix(dst_files,post_fix)
 
-    for i in tqdm(range(1, len(src_files)), ncols=100):
+    for i in tqdm(range(len(src_files)), ncols=100):
        src_file = src_files[i]
        dst_file = dst_files[i]
 
