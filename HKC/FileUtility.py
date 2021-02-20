@@ -754,5 +754,16 @@ class FileUtility:
     return len(os.listdir(src_path)) != 0
 
 
+  @staticmethod
+  def writeTextList(filename,src_list):
+    with open(filename,'w') as f:
+      for value in src_list:
+        f.write(value +'\n')
+
+      f.close()
+
+
+
+
 
 

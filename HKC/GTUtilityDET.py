@@ -324,7 +324,19 @@ class GTUtilityDET:
       gt.load(gt_filename)
       
       return gt,gt_filename
-      
+
+  @staticmethod
+  def correctnessYoloLableFile(src_path, labels):
+      classess_fname = 'classes.txt'
+      if FileUtility.checkRootFolder(src_path):
+          classess_filename = os.path.join(src_path,classess_fname)
+          if not os.path.exists(classess_filename):
+              FileUtility.writeTextList(classess_filename,labels)
+      else :
+          sub_folders = FileUtility.getSubfolders(src_path)
+          for sub_folder in sub_folders:
+              GTUtilityDET.correctnessYoloLableFile(os.path.join(src_path, sub_folder), labels)
+
 
   @staticmethod
   def resize(image_filename,size, jpeg_quality = 30,interpolation = None):
