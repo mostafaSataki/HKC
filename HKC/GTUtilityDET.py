@@ -102,7 +102,7 @@ class GTUtilityDET:
 
       dst_voc = VOC()
 
-      for i in tqdm(range(1, len(src_image_filesname)), ncols=100):
+      for i in tqdm(range(len(src_image_filesname)), ncols=100):
           src_image_filename = src_image_filesname[i]
           src_gt_filename = FileUtility.changeFileExt(src_image_filename, 'txt')
 
@@ -299,7 +299,7 @@ class GTUtilityDET:
 
     ref_img, ref_regions = GTUtilityDET.getGTData(ref_image_filename)
 
-    for i in tqdm(range(1,len(image_filesname)), ncols=100):
+    for i in tqdm(range(len(image_filesname)), ncols=100):
         cur_image_filename = image_filesname[i]
         cur_img ,cur_regions = GTUtilityDET.getGTData(cur_image_filename)
         is_similar = CvUtility.similariy(ref_img,ref_regions[0], cur_img,cur_regions[0])
@@ -327,7 +327,34 @@ class GTUtilityDET:
       
 
   @staticmethod
-  def flipHorz(image_filename):
+  def resize(image_filename,size, jpeg_quality = 30,interpolation = None):
+      gt, gt_filename = GTUtilityDET.loadGT(image_filename)
+      src_image = cv2.imread(image_filename)
+      dst_image,scale = CvUtility.resizeImage(src_image,size,interpolation)
+      for obj in gt.data_.objects_:
+          obj.region_.setCvRect(RectUtility.resize(obj.region_.getCvRect(),scale))
+
+      cv2.imwrite(image_filename,dst_image,[cv2.IMWRITE_JPEG_QUALITY,jpeg_quality])
+      gt.save(gt_filename)
+
+  @staticmethod
+  def resizeBatch(src_path,dst_path,size, jpeg_quality = 30,interpolation = None):
+      FileUtility.copyFullSubFolders(src_path, dst_path)
+
+      src_image_filesname, src_gt_filesname = GTUtilityDET.getGtFiles(src_path)
+
+      dst_image_filesname = FileUtility.getDstFilenames2(src_image_filesname, src_path, dst_path)
+      dst_gt_filesname = FileUtility.getDstFilenames2(src_gt_filesname, src_path, dst_path)
+
+      FileUtility.copyFilesByName(src_image_filesname, dst_image_filesname)
+      FileUtility.copyFilesByName(src_gt_filesname, dst_gt_filesname)
+
+      for i in tqdm(range( len(dst_image_filesname)), ncols=100):
+          dst_image_filename = dst_image_filesname[i]
+          GTUtilityDET.resize(dst_image_filename,size, jpeg_quality,interpolation)
+
+  @staticmethod
+  def flipHorz(image_filename,jpeg_quality = 30):
       gt,gt_filename = GTUtilityDET.loadGT(image_filename)
       
       image = cv2.imread(image_filename)
@@ -336,29 +363,30 @@ class GTUtilityDET:
           obj.region_.setCvRect( RectUtility.flipHorzRect(obj.region_.getCvRect(),image.shape))
 
       image = cv2.flip(image,1)
-      cv2.imwrite(image_filename,image,[cv2.IMWRITE_JPEG_QUALITY,30])
+      cv2.imwrite(image_filename,image,[cv2.IMWRITE_JPEG_QUALITY,jpeg_quality])
       gt.save(gt_filename)
 
   @staticmethod
-  def flipHorzBatch(src_path, dst_path, post_fix=""):
+  def flipHorzBatch(src_path, dst_path, post_fix="_fh",jpeg_quality = 30):
 
-      FileUtility.copyFullSubFolders(src_path, dst_path)
+      if src_path != dst_path :
+         FileUtility.copyFullSubFolders(src_path, dst_path)
 
       src_image_filesname, src_gt_filesname = GTUtilityDET.getGtFiles(src_path)
 
       dst_image_filesname = FileUtility.getDstFilenames2(src_image_filesname, src_path, dst_path)
       dst_gt_filesname = FileUtility.getDstFilenames2(src_gt_filesname, src_path, dst_path)
 
-      dst_image_filesname = FileUtility.changeFilesnamePostfix(dst_image_filesname, "_FH")
-      dst_gt_filesname = FileUtility.changeFilesnamePostfix(dst_gt_filesname, "_FH")
+      dst_image_filesname = FileUtility.changeFilesnamePostfix(dst_image_filesname, post_fix)
+      dst_gt_filesname = FileUtility.changeFilesnamePostfix(dst_gt_filesname, post_fix)
 
       FileUtility.copyFilesByName(src_image_filesname,dst_image_filesname)
       FileUtility.copyFilesByName(src_gt_filesname, dst_gt_filesname)
 
 
-      for i in tqdm(range(1,len(dst_image_filesname)), ncols=100):
+      for i in tqdm(range(len(dst_image_filesname)), ncols=100):
           dst_image_filename = dst_image_filesname[i]
-          GTUtilityDET.flipHorz(dst_image_filename)
+          GTUtilityDET.flipHorz(dst_image_filename,jpeg_quality)
 
 
   @staticmethod
@@ -379,7 +407,7 @@ class GTUtilityDET:
 
       gt_format = GTUtilityDET.getGtFolderFormat(src_path)
 
-      for i in tqdm(range(1, len(src_files)), ncols=100):
+      for i in tqdm(range(len(src_files)), ncols=100):
           src_image_file = src_files[i]
           dst_image_file = dst_files[i]
 
@@ -456,7 +484,7 @@ class GTUtilityDET:
       image_filenames ,gt_filenames = GTUtilityDET.getGtFiles(src_path)
       gt_list = []
 
-      for i in tqdm(range(1, len(image_filenames)), ncols=100):
+      for i in tqdm(range( len(image_filenames)), ncols=100):
           image_filename = image_filenames[i]
           gt_filename = gt_filenames[i]
           gt,_ = GTUtilityDET.loadGT(image_filename)
@@ -548,7 +576,7 @@ class GTUtilityDET:
 
           cur_filename = ""
           new_file = False
-          for i in tqdm(range(1, len(groups)), ncols=100):
+          for i in tqdm(range( len(groups)), ncols=100):
               filename = groups['filename'][i]
               xmin = groups['xmin'][i]
               xmax = groups['xmax'][i]
@@ -862,6 +890,40 @@ class GTUtilityDET:
           result = input_labels
 
       return result
+
+  @staticmethod
+  def prepareImages(src_path,dst_path = None, dst_size = None,jpeg_quality = 30 ,gray = False,flip_horz = False,flip_postfix = "_fh", interpolation = None):
+      if dst_path == '':
+          dst_path = src_path
+      else :
+          FileUtility.createClearFolder(dst_path)
+
+      dst_flag = False
+      if dst_size :
+          GTUtilityDET.resizeBatch(src_path, dst_path, dst_size, jpeg_quality,interpolation)
+          dst_flag = True
+
+
+      if flip_horz :
+          if dst_flag:
+             GTUtilityDET.flipHorzBatch(dst_path,dst_path,post_fix= flip_postfix,jpeg_quality= jpeg_quality)
+          else:
+              GTUtilityDET.flipHorzBatch(src_path,dst_path,post_fix=flip_postfix,jpeg_quality= jpeg_quality)
+              dst_flag = True
+      if gray:
+          if dst_flag:
+              CvUtility.toGray(dst_path,dst_path)
+          else :
+              CvUtility.toGray(src_path, dst_path)
+
+
+
+
+
+
+
+
+
 
 
 

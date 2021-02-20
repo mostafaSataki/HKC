@@ -449,7 +449,9 @@ class FileUtility:
   @staticmethod
   def deleteFolderContents(path):
     if os.path.exists(path):
-       shutil.rmtree(path)
+       shutil.rmtree(path, ignore_errors=True)
+       while os.path.exists(path):
+         pass
     os.mkdir(path)
 
   @staticmethod
@@ -746,6 +748,10 @@ class FileUtility:
       return MediaType.folder,None
     elif os.path.isfile(media):
       return MediaType.file,FileUtility.getFileExt(media)
+
+  @staticmethod
+  def isFolderEmpty(src_path):
+    return len(os.listdir(src_path)) != 0
 
 
 
