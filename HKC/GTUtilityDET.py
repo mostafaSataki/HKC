@@ -928,6 +928,22 @@ class GTUtilityDET:
           else :
               CvUtility.toGray(src_path, dst_path)
 
+  @staticmethod
+  def downloadModel(URL,model_name,train_path,model_ext = '.tar.gz',pretrained_path = 'pretrained_model',clear_file = False):
+      pretrained_full_path = os.path.join(train_path,pretrained_path)
+      model_filename = model_name + model_ext
+      model_host_filename = os.path.join( pretrained_full_path ,model_filename)
+      model_repo_filename = os.path.join(URL,model_filename)
+
+      if not os.path.exists(model_host_filename):
+          urllib.request.urlretrieve(model_repo_filename, model_host_filename)
+
+      FileUtility.extractFile(model_host_filename,pretrained_full_path)
+
+
+
+
+
 
 
 
