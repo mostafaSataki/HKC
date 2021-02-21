@@ -21,6 +21,8 @@ import pandas as pd
 import tensorflow as tf
 
 import  tempfile
+from google.protobuf import text_format
+from object_detection.protos import pipeline_pb2
 
 # from PIL import Image
 from object_detection.utils import dataset_util
@@ -929,17 +931,49 @@ class GTUtilityDET:
               CvUtility.toGray(src_path, dst_path)
 
   @staticmethod
-  def downloadModel(URL,model_name,train_path,model_ext = '.tar.gz',pretrained_path = 'pretrained_model',clear_file = False):
-      pretrained_full_path = os.path.join(train_path,pretrained_path)
+  def downloadModel(URL,model_name,train_path,pretrained_path,model_ext = '.tar.gz' ,clear_file = False):
+
+      pretrained_full_path = os.path.join(pretrained_path,model_name)
+
       model_filename = model_name + model_ext
       model_host_filename = os.path.join( pretrained_full_path ,model_filename)
       model_repo_filename = os.path.join(URL,model_filename)
 
       if not os.path.exists(model_host_filename):
           urllib.request.urlretrieve(model_repo_filename, model_host_filename)
-
       FileUtility.extractFile(model_host_filename,pretrained_full_path)
 
+
+
+  @staticmethod
+  def customizeConfigFile(labelmap,train_tf,val_tf, size = (320,320),num_classes = 1,batch_size = 20,num_steps = 200000):
+      input_filename = r'J:\flash\inference_graph\New folder\pipeline.config'
+      output_filename = r'd:\pipeline.config'
+
+      pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()
+
+      with tf.gfile.GFile(input_filename, "r") as f:
+          proto_str = f.read()
+          text_format.Merge(proto_str, pipeline_config)
+
+      pipeline_config.model.ssd.num_classes = num_classes
+      pipeline_config.model.ssd.image_resizer.fixed_shape_resizer.height = size[0]
+      pipeline_config.model.ssd.image_resizer.fixed_shape_resizer.width = size[1]
+
+      pipeline_config.train_config.batch_size = batch_size
+      pipeline_config.train_config.fine_tune_checkpoint_type: "detection"
+      pipeline_config.train_config.num_steps = num_steps
+
+      pipeline_config.train_input_reader.label_map_path = labelmap
+      pipeline_config.train_input_reader.tf_record_input_reader.input_path = train_tf
+
+
+      pipeline_config.eval_input_reader.label_map_path = labelmap
+      pipeline_config.eval_input_reader.tf_record_input_reader.input_path = val_tf
+
+      config_text = text_format.MessageToString(pipeline_config)
+      with tf.gfile.Open(output_filename, "wb") as f:
+          f.write(config_text)
 
 
 
