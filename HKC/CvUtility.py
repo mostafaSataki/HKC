@@ -223,11 +223,15 @@ class CvUtility:
 
   @staticmethod
   def resizeBatch(src_path,dst_path,dst_size):
-    src_files = FileUtility.getFolderImageFiles(src_path)
-    dst_files = FileUtility.getDstFilenames(src_files, dst_path)
 
-    for i, src_file in enumerate(src_files):
-      print(src_file)
+
+    src_files = FileUtility.getFolderImageFiles(src_path)
+    FileUtility.copyFullSubFolders(src_path,dst_path
+                                   )
+    dst_files = FileUtility.getDstFilenames2(src_files,src_path, dst_path)
+
+    for i in tqdm(range(len(src_files)), ncols=100):
+      src_file = src_files[i]
       dst_file = dst_files[i]
       src_image = cv2.imread(src_file)
       dst_image = cv2.resize(src_image, dst_size)
@@ -658,6 +662,36 @@ class CvUtility:
 
 
 
+  @staticmethod
+  def readImage(filename,size = None,norm = False,gray = False,float_type = True):
+        if gray:
+           image = cv2.imread(filename, 0)
+           channel = 1
+        else :
+            image = cv2.imread(filename, 1)
+            channel = 3
+
+        if np.shape(image) == ():
+            None
+
+        if float_type :
+           image = image.astype('f4')
+
+        if norm :
+           image = image / 255.0
+
+        if size :
+           image = image.reshape(size[1], size[0], channel)
+
+        return image
+
+  @staticmethod
+  def readImages(filenames,size = None,norm = False,gray = False,float_type = True):
+    result = []
+    for i in tqdm(range(len(filenames)), ncols=100):
+      filename = filenames[i]
+      result.append(CvUtility.readImage(filename,size,norm,gray,float_type))
+    return result
 
 
 

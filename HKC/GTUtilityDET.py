@@ -854,14 +854,22 @@ class GTUtilityDET:
       return result
 
   @staticmethod
-  def installObjectDetectionInColab():
-      os.chdir('/root')
+  def installObjectDetectionInColab(od_path):
+      models_path = os.path.join(od_path,'models')
+      research_path = os.path.join(models_path,'research')
+      slim_path = os.path.join(research_path,'slim')
+
+
+
+      os.chdir(od_path)
       subprocess.call(['git', 'clone', '--quiet', 'https://github.com/tensorflow/models.git'])
-      os.chdir('/root/models')
-      subprocess.call(['apt-get', 'install', '-qq', 'protobuf-compiler', 'python-tk'])
+      os.chdir(models_path)
+      if Utility.isLinux():
+          subprocess.call(['apt-get', 'install', '-qq', 'protobuf-compiler', 'python-tk'])
+
       subprocess.call(['pip', 'install', '-q', 'Cython', 'contextlib2', 'pillow', 'lxml', 'matplotlib', 'PyDrive'])
       subprocess.call(['pip', 'install', '-q', 'pycocotools'])
-      os.chdir('/root/models/research')
+      os.chdir(research_path)
       # subprocess.call(['cd', '~/models/research'])
       subprocess.call(['protoc', 'object_detection/protos/*.proto', '--python_out', '.'])
 
@@ -872,11 +880,12 @@ class GTUtilityDET:
 
       subprocess.call(['pip', 'install', 'tf_slim'])
 
+
       os.environ['PYTHONPATH'] += ':/root/models/research/:/root/models/research/slim/'
 
-      subprocess.call(['python', '/root/models/research/object_detection/builders/model_builder_test.py'])
+      subprocess.call(['python',os.path.join( research_path,'object_detection/builders/model_builder_test.py')])
 
-      os.chdir('/root/models/research')
+      os.chdir(research_path)
       # subprocess.call(['cd', '/root/models/research'])
       subprocess.call(['python', 'setup.py', 'build'])
       subprocess.call(['sudo', 'python', 'setup.py', 'install'])
@@ -930,6 +939,7 @@ class GTUtilityDET:
           else :
               CvUtility.toGray(src_path, dst_path)
 
+
   @staticmethod
   def downloadModel(URL,model_name,train_path,pretrained_path,model_ext = '.tar.gz' ,clear_file = False):
 
@@ -974,6 +984,34 @@ class GTUtilityDET:
       config_text = text_format.MessageToString(pipeline_config)
       with tf.gfile.Open(output_filename, "wb") as f:
           f.write(config_text)
+
+
+  @staticmethod
+  def trainObjDetection(od_path, models_path, training_path):
+
+      return
+      config_file = 'pipeline.config'
+      checkpoints_path = os.path.join(models_path,'checkpoints')
+
+      if not os.path.exists(checkpoints_path) :
+          os.mkdir(checkpoints_path)
+
+
+
+
+      ver = tf.__version__.split('.')[0]
+      if  ver == '1':
+          model_main = 'model_main.py'
+      elif ver == '2':
+          model_main = 'model_main_tf2.py'
+
+
+      model_main_full = os.path.join(od_path,model_main)
+      config_filename = os.path.join(model_path,config_file)
+
+      subprocess.call(['python', model_main_full, '--pipeline_config_path', config_filename,'--model_dir','/content/drive/MyDrive/Hand/checkpoint '])
+
+
 
 
 

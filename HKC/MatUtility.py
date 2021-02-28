@@ -16,10 +16,11 @@ class MatUtility:
     return result
 
   @staticmethod
-  def getRandomIndexs(count):
+  def getRandomIndexs(count,per = 1.0):
     list1 = list(range(count))
     random.shuffle(list1)
-    return list1
+    count = int(len(list1) * per)
+    return list1[:count]
   
   
   
