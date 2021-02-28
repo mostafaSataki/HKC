@@ -3,6 +3,8 @@ import  random
 import  os
 from enum import Enum
 from urllib.parse import urlparse
+import sys
+import datetime
 
 
 class IndexType(Enum):
@@ -176,7 +178,66 @@ class Utility:
 
      return flag,result
 
+  @staticmethod
+  def getPlatform():
+    platforms = {
+      'linux1': 'Linux',
+      'linux2': 'Linux',
+      'darwin': 'OS X',
+      'win32': 'Windows'
+    }
+    if sys.platform not in platforms:
+      return sys.platform
 
+    return platforms[sys.platform]
+
+  @staticmethod
+  def isWindows():
+     return Utility.getPlatform() == 'Windows'
+
+  @staticmethod
+  def isLinux():
+    return Utility.getPlatform() == 'Linux'
+
+  @staticmethod
+  def add2PythonPath(env_list):
+    pass
+
+  @staticmethod
+  def lowerStrList(items):
+      return [x.lower() for x in items]
+
+  @staticmethod
+  def upperStrList(items):
+    return [x.lower() for x in items]
+
+  @staticmethod
+  def matchLists(items1, items2):
+    if len(items1) != len(items2):
+      return False
+
+    list_1 = Utility.lowerStrList(items1)
+    list_2 = Utility.lowerStrList(items2)
+
+    res = set(list_1) & set(list_2)
+
+    return len(res) == len(items1)
+
+  @staticmethod
+  def sortListByIndexs(listA, indexs):
+    return [x for _, x in sorted(zip(indexs, listA))]
+
+  @staticmethod
+  def strList2Indexs(listA):
+    result = []
+    for l in listA:
+      result.append(int(l))
+    return result
+
+  @staticmethod
+  def getNowStr():
+     now = datetime.datetime.now()
+     return now.strftime("D-%Y-%m-%d-T-%H-%M-%S")
 
 
 

@@ -21,6 +21,9 @@ import urllib.request
 import zipfile
 import tempfile
 from  enum import  Enum
+import csv
+import os
+import platform
 
 class MediaType(Enum):
   folder = 1
@@ -761,6 +764,31 @@ class FileUtility:
         f.write(value +'\n')
 
       f.close()
+
+
+
+  @staticmethod
+  def getFileCreationDate(path_to_file):
+
+      if platform.system() == 'Windows':
+          return os.path.getctime(path_to_file)
+      else:
+          stat = os.stat(path_to_file)
+          try:
+              return stat.st_birthtime
+          except AttributeError:
+              return stat.st_mtime
+
+
+  @staticmethod
+  def getLastFilename(src_path):
+    p = os.path.join(src_path,'*')
+    list_of_files = glob.glob(p)
+    if len(list_of_files) == 0:
+      return None
+    latest_file = max(list_of_files, key=os.path.getctime)
+    return latest_file
+
 
 
 

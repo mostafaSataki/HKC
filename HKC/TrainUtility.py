@@ -223,9 +223,10 @@ class TrainUtility:
 
   @staticmethod
   def convertOneHot(labels, class_count):
-    new_labels = np.zeros((labels.shape[0], class_count))
+    count = len(labels)
+    new_labels = np.zeros(( count, class_count))
 
-    for item in range(0, labels.shape[0]):
+    for item in range(0, count):
       new_labels[item][int(labels[item])] = 1
     return new_labels
 
