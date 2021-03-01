@@ -6,7 +6,7 @@ import os
 from keras.callbacks import TensorBoard
 from keras.callbacks import ModelCheckpoint
 import tensorflow as tf
-from .ClsModels import *
+from .ClassifivationModelsTF import *
 from time import time
 from  keras.models import load_model
 import numpy as np
@@ -34,6 +34,8 @@ class ClassificationTF:
     def gtPath(self):
         return self._join('GT')
 
+    def getImagesPath(self):
+        return  self._join('images')
 
     def selectModel(self, type):
         self._model = ClsModels.getModel(type,self._size,len(self._org_classes))
@@ -76,6 +78,25 @@ class ClassificationTF:
 
     def getLastCheckpoint(self):
         return  FileUtility.getLastFilename(FileUtility.getLastFilename(self._join('checkpoint')))
+
+    def resizeBatch(self, src_path, size):
+        self._size = size
+
+        FileUtility.createClearFolder(self.getImagesPath())
+        FileUtility.copyFullSubFolders(src_path, self.getImagesPath())
+        CvUtility.resizeBatch(src_path, self.getImagesPath(), size)
+
+    def loadDataset(self, norm=False, gray=False, float_type=True, use_per=1.0, size=None):
+        self._norm = norm
+        self._gray = gray
+        self._float_type = float_type
+        self._use_per = use_per
+        if size:
+            self._size = size
+
+        self._train_X, self._train_y, self._test_X, self._test_y = GTClassification.loadDataset_(
+            self.trainGtFilename(), self.testGtFilename(), self._org_classes, norm, gray, float_type, use_per,
+            self._size)
 
     def inference(self,filename):
         pass

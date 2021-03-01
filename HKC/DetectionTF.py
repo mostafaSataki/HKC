@@ -5,8 +5,38 @@ from object_detection.utils import dataset_util
 import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
+from .GTDetection import *
 
 class DetectionTF:
+    def __init__(self,deploy_path):
+        self._deploy_path = deploy_path
+        self._createPaths()
+
+    def _createPaths(self):
+        if not os.path.exists(self._deploy_path):
+            os.mkdir(self._deploy_path)
+
+        if not os.path.exists(self.getDatasetPath()):
+            os.mkdir(self.getDatasetPath())
+
+    def getDatasetPath(self):
+        return self._join('Dataset')
+
+    def getLablemapFilename(self):
+        return self._join('Dataset/labelemap.txt')
+
+
+    def resize(self,src_path,size,jpeg_quality=30, interpolation=None):
+        self._size = size
+
+        FileUtility.createClearFolder(self.getImagesPath())
+        FileUtility.copyFullSubFolders(src_path, self.getImagesPath())
+
+        GTDetection.resizeBatch(src_path,self.getImagesPath(),size,jpeg_quality,interpolation)
+
+    def _join(self, path):
+        return os.path.join(self._deply_path,path)
+
     @staticmethod
     def getIndex(label ,labels):
         index =  Utility.getIndex(label, labels)
@@ -15,7 +45,7 @@ class DetectionTF:
         return index
 
     @staticmethod
-    def createTFExample(images_path ,groups ,tf_rec_filename ,labels, branch):
+    def createTFExample(images_path, csv_data, tf_rec_filename, labels, branch):
         writer = tf.io.TFRecordWriter(tf_rec_filename)
         xmin = []
         xmax = []
@@ -47,15 +77,15 @@ class DetectionTF:
 
         cur_filename = ""
         new_file = False
-        for i in tqdm(range(len(groups)), ncols=100):
-            filename = groups['filename'][i]
-            xmin = groups['xmin'][i]
-            xmax = groups['xmax'][i]
-            ymin = groups['ymin'][i]
-            ymax = groups['ymax'][i]
-            class_ = groups['class'][i]
-            width = groups['width'][i]
-            height = groups['height'][i]
+        for i in tqdm(range(len(csv_data)), ncols=100):
+            filename = csv_data['filename'][i]
+            xmin = csv_data['xmin'][i]
+            xmax = csv_data['xmax'][i]
+            ymin = csv_data['ymin'][i]
+            ymax = csv_data['ymax'][i]
+            class_ = csv_data['class'][i]
+            width = csv_data['width'][i]
+            height = csv_data['height'][i]
 
             save_flag = False
             if not cur_filename:
@@ -111,8 +141,8 @@ class DetectionTF:
     def csv2TFRec(images_path, csv_filename, tf_rec_filename, branch, labels):
         # labels = GTUtilityDET.extractCSVLabels(csv_filename)
         writer = tf.io.TFRecordWriter(tf_rec_filename)
-        grouped = pd.read_csv(csv_filename)
-        DetectionTF.createTFExample(images_path, grouped, tf_rec_filename, labels, branch)
+        csv_data = pd.read_csv(csv_filename)
+        DetectionTF.createTFExample(images_path, csv_data, tf_rec_filename, labels, branch)
         writer.close()
 
 
@@ -128,10 +158,12 @@ class DetectionTF:
 
 
     @staticmethod
-    def convertImages2TFRec(src_media, dst_path, lablemap_filename, labels, train_per=0.8, clear_dst=True):
+    def convertImages2TFRec(src_media, dst_path, lablemap_filename, labels,size, train_per=0.8,
+                            clear_dst=True,jpeg_quality=30, interpolation=None):
         temp_path = tempfile.mkdtemp()
 
         GTDetection.copySplitGT2(src_media, temp_path, train_per, True, clear_dst=clear_dst)
+        GTDetection.resizeBatch(temp_path,temp_path,size,jpeg_quality,interpolation)
         GTDetection.GT2CsvBranchs(temp_path, temp_path)
 
         lbls = DetectionTF.getLabelMap(lablemap_filename, labels)
@@ -312,6 +344,13 @@ class DetectionTF:
 
         subprocess.call(['python', model_main_full, '--pipeline_config_path', config_filename, '--model_dir',
                          '/content/drive/MyDrive/Hand/checkpoint '])
+
+    def createTFRecord(self,src_path,labels,size, train_per = 0.8,jpeg_quality=30, interpolation=None):
+        DetectionTF.createLabelMap(self.getLablemapFilename(),labels)
+        DetectionTF.convertImages2TFRec(src_path,self.getLablemapFilename(),self.getLablemapFilename(),labels,size,
+                                        train_per,True,jpeg_quality,interpolation)
+
+
 
 
 

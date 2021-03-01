@@ -121,12 +121,7 @@ class GTClassification:
         images = np.array(images)
         return images, filenames
 
-    def resizeBatch(self, src_path, size):
-        self._size = size
-        dst_path = self._join('images')
-        FileUtility.createClearFolder(dst_path)
-        FileUtility.copyFullSubFolders(src_path, dst_path)
-        CvUtility.resizeBatch(src_path, self._join('images'), size)
+
 
     @staticmethod
     def createGtFiles_(images_path, train_gt_filename, test_gt_filename, org_classes, train_per=0.8):
@@ -151,16 +146,4 @@ class GTClassification:
                                                       use_per, delimiter)
 
         return train_X, train_y, test_X, test_y
-
-    def loadDataset(self, norm=False, gray=False, float_type=True, use_per=1.0, size=None):
-        self._norm = norm
-        self._gray = gray
-        self._float_type = float_type
-        self._use_per = use_per
-        if size:
-            self._size = size
-
-        self._train_X, self._train_y, self._test_X, self._test_y = GTClassification.loadDataset_(
-            self.trainGtFilename(), self.testGtFilename(), self._org_classes, norm, gray, float_type, use_per,
-            self._size)
 
