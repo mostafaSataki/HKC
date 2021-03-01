@@ -1,14 +1,7 @@
-from .FileUtility import *
-from .CvUtility import *
-from .MatUtility import *
-from enum import  Enum
+from .GTClassification import *
+from  .GTDetection import *
+
 import  random
-
-
-# class IndexType(enum.Enum):
-#     Begin
-#     End
-#     Random
 
 class GTUtility:
     @staticmethod
@@ -28,5 +21,3 @@ class GTUtility:
         train_indexs = total_indexs[:train_count]
         test_indexs = total_indexs[train_count:]
         return train_indexs, test_indexs
-
-
