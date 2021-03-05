@@ -7,7 +7,7 @@ class ClassifierType(enum.Enum):
     Simple1 = 1
     EfficentNetB0 = 2
 
-class ClsModels:
+class ClassificationModelsTF:
 
     @staticmethod
     def getSimpleModel(size , classes_count):
@@ -40,4 +40,4 @@ class ClsModels:
     @staticmethod
     def getModel(type, size, classes_count):
         if type == ClassifierType.Simple1:
-           return ClsModels.getSimpleModel(size,classes_count)
+           return ClassificationModelsTF.getSimpleModel(size, classes_count)

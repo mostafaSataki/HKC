@@ -192,7 +192,8 @@ class FileUtility:
   @staticmethod
   def copyFilesByName(src_filenames,dst_filenames):
     for i in tqdm(range(len(src_filenames)), ncols=100):
-      shutil.copyfile(src_filenames[i], dst_filenames[i])
+      if src_filenames[i] != dst_filenames[i]:
+        shutil.copyfile(src_filenames[i], dst_filenames[i])
 
   @staticmethod
   def copyFiles(src_files, dst_path, labels):

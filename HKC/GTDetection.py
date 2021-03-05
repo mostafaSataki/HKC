@@ -1,6 +1,6 @@
 import enum
 import os
-from  .GT import *
+from  .GTUtility import *
 from .GT.VOC import *
 from .GT.YOLO import *
 
