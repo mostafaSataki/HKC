@@ -1,5 +1,5 @@
 from HKC.ClassificationTF import *
-from HKC.ClassifivationModelsTF import *
+from HKC.ClassificationModelsTF import *
 from keras.optimizers import Adam
 
 

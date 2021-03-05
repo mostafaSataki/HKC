@@ -6,11 +6,38 @@ import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
 from .GTDetection import *
+from .DetectionModelsTF import *
+import tensorflow as tf
+import time
+import cv2
+import numpy as np
+from object_detection.utils import visualization_utils as viz_utils
+from object_detection.utils import label_map_util
 
 class DetectionTF:
-    def __init__(self,deploy_path):
+    def __init__( self,object_detection_path, deploy_path):
+
+        self._object_detection_path = object_detection_path
         self._deploy_path = deploy_path
+
         self._createPaths()
+
+    def getDatasetPath(self):
+        return self._join('Dataset')
+
+    def getLablemapFilename(self):
+        return self._join('Dataset/labelemap.txt')
+
+        # def getCheckpointPath(self):
+        #     return self._join('Checkpoint')
+
+    def getTrainPath(self):
+        return self._join("Train")
+
+    def getModelsPath(self):
+        return os.path.join(self._object_detection_path,'models')
+
+
 
     def _createPaths(self):
         if not os.path.exists(self._deploy_path):
@@ -19,11 +46,12 @@ class DetectionTF:
         if not os.path.exists(self.getDatasetPath()):
             os.mkdir(self.getDatasetPath())
 
-    def getDatasetPath(self):
-        return self._join('Dataset')
+         if not os.path.exists(self.getTrainPath()):
+            os.mkdir(self.getTrainPath())
 
-    def getLablemapFilename(self):
-        return self._join('Dataset/labelemap.txt')
+         if not os.path.exists(self.getModelsPath()):
+            os.mkdir(self.getModelsPath())
+
 
 
     def resize(self,src_path,size,jpeg_quality=30, interpolation=None):
@@ -35,7 +63,7 @@ class DetectionTF:
         GTDetection.resizeBatch(src_path,self.getImagesPath(),size,jpeg_quality,interpolation)
 
     def _join(self, path):
-        return os.path.join(self._deply_path,path)
+        return os.path.join(self._deploy_path,path)
 
     @staticmethod
     def getIndex(label ,labels):
@@ -196,41 +224,6 @@ class DetectionTF:
 
 
     @staticmethod
-    def installObjectDetectionInColab(od_path):
-        models_path = os.path.join(od_path, 'models')
-        research_path = os.path.join(models_path, 'research')
-        slim_path = os.path.join(research_path, 'slim')
-
-        os.chdir(od_path)
-        subprocess.call(['git', 'clone', '--quiet', 'https://github.com/tensorflow/models.git'])
-        os.chdir(models_path)
-        if Utility.isLinux():
-            subprocess.call(['apt-get', 'install', '-qq', 'protobuf-compiler', 'python-tk'])
-
-        subprocess.call(['pip', 'install', '-q', 'Cython', 'contextlib2', 'pillow', 'lxml', 'matplotlib', 'PyDrive'])
-        subprocess.call(['pip', 'install', '-q', 'pycocotools'])
-        os.chdir(research_path)
-        # subprocess.call(['cd', '~/models/research'])
-        subprocess.call(['protoc', 'object_detection/protos/*.proto', '--python_out', '.'])
-
-        subprocess.call(['pip', 'install', 'pascal_voc_writer'])
-        subprocess.call(['pip', 'install', 'imgaug'])
-        subprocess.call(['pip', 'install', 'selenium'])
-        subprocess.call(['pip', 'install', 'tf-models-official'])
-
-        subprocess.call(['pip', 'install', 'tf_slim'])
-
-        os.environ['PYTHONPATH'] += ':/root/models/research/:/root/models/research/slim/'
-
-        subprocess.call(['python', os.path.join(research_path, 'object_detection/builders/model_builder_test.py')])
-
-        os.chdir(research_path)
-        # subprocess.call(['cd', '/root/models/research'])
-        subprocess.call(['python', 'setup.py', 'build'])
-        subprocess.call(['sudo', 'python', 'setup.py', 'install'])
-
-
-    @staticmethod
     def loadTensorboardInColab(trained_path):
         subprocess.call(['load_ext', 'tensorboard'])
         subprocess.call(['tensorboard', '--logdir', trained_path])
@@ -281,21 +274,30 @@ class DetectionTF:
                 DetectionTF.toGray(src_path, dst_path)
 
 
-    @staticmethod
-    def downloadModel(URL, model_name, train_path, pretrained_path, model_ext='.tar.gz', clear_file=False):
-        pretrained_full_path = os.path.join(pretrained_path, model_name)
-
-        model_filename = model_name + model_ext
-        model_host_filename = os.path.join(pretrained_full_path, model_filename)
-        model_repo_filename = os.path.join(URL, model_filename)
-
-        if not os.path.exists(model_host_filename):
-            urllib.request.urlretrieve(model_repo_filename, model_host_filename)
-        FileUtility.extractFile(model_host_filename, pretrained_full_path)
 
 
-    @staticmethod
-    def customizeConfigFile(labelmap, train_tf, val_tf, size=(320, 320), num_classes=1, batch_size=20, num_steps=200000):
+    def getTrainTFRec(self):
+        return os.path.join( self.getDatasetPath(),'train.record')
+
+    def getTestTFRec(self):
+        return os.path.join( self.getDatasetPath(),'test.record')
+
+    def getModelConfigFile(self):
+        pass
+
+    def createTrainSession(self):
+        session_path = os.path.join( self.getTrainPath(), self._current_model_name  + '_' + Utility.getNowStr())
+        os.mkdir(session_path)
+        return session_path
+
+
+
+    def setConfigFile(self):
+        self._session_path = self.createTrainSession()
+        self._session_config_filename = os.path.join(self._session_path,'pipline.config')
+        FileUtility.copyFile(self.getConfigFilename(),self._session_config_filename)
+
+        # labelmap, size = (320, 320), num_classes = 1, batch_size = 20, num_steps = 200000
         input_filename = r'J:\flash\inference_graph\New folder\pipeline.config'
         output_filename = r'd:\pipeline.config'
 
@@ -324,32 +326,94 @@ class DetectionTF:
             f.write(config_text)
 
 
-    @staticmethod
-    def trainObjDetection(od_path, models_path, training_path):
-        return
-        config_file = 'pipeline.config'
-        checkpoints_path = os.path.join(models_path, 'checkpoints')
-
-        if not os.path.exists(checkpoints_path):
-            os.mkdir(checkpoints_path)
-
+    def _getTrainMethodFilename(self):
         ver = tf.__version__.split('.')[0]
         if ver == '1':
-            model_main = 'model_main.py'
+            train_filename = 'model_main.py'
         elif ver == '2':
-            model_main = 'model_main_tf2.py'
+            train_filename = 'model_main_tf2.py'
 
-        model_main_full = os.path.join(od_path, model_main)
-        config_filename = os.path.join(model_path, config_file)
+        return os.path.join(self._object_detection_path, train_filename)
 
-        subprocess.call(['python', model_main_full, '--pipeline_config_path', config_filename, '--model_dir',
-                         '/content/drive/MyDrive/Hand/checkpoint '])
+    def getConfigFilename(self):
+        self._join("Models")
+        return self._join()
+
+    def selectModel(self,model_name):
+        self._current_model_name = model_name
+
+
+
+    def getCurrentCheckpoint(self):
+         return os.path.join( self.getCheckpointPath(),Utility.getNowStr())
+
+    def getCurrentModelsPath(self):
+        return os.path.join(self.getTrainPath(), self._current_model)
+
+    def getConfigFilename(self):
+        return os.path.join( self.getCurrentModelsPath(),self._config_filename)
+
+
+    def train(self,  batch_size=20, num_steps=200000):
+        self._batch_size =  batch_size
+        self._num_steps = num_steps
+
+        subprocess.call(['python', self._getTrainMethodFilename(), '--pipeline_config_path', self.getConfigFilename(), '--model_dir',
+                         self.getCurrentCheckpoint()])
+
+    def test(self,src_path,dst_path,model_path ='__last__',per = 1.0, color=(0,255,0),thickness = 1):
+        src_filenames = FileUtility.getFolderImageFiles(src_path)
+        dst_filenames = FileUtility.getDstFilenames2(src_filenames,src_path,dst_path)
+
+
+        tf.keras.backend.clear_session()
+        detect_fn = tf.saved_model.load('/root/datalab/my_model/saved_model/')
+
+        model_category_index = label_map_util.create_category_index_from_labelmap(MODEL_LABELS,
+                                                                                  use_display_name=True)
+        for i in tqdm(range(int(len(src_filenames) * per)), ncols=100):
+            src_filename = src_filenames[i]
+            dst_filename = dst_filenames[i]
+
+            src_image = cv2.imread(src_filename)
+            detections = detect_fn(src_image)
+
+
+            label_id_offset = 1
+
+            viz_utils.visualize_boxes_and_labels_on_image_array(
+                src_image,
+                detections['detection_boxes'][0].numpy(),
+                detections['detection_classes'][0].numpy().astype(np.int32),
+                detections['detection_scores'][0].numpy(),
+                model_category_index,
+                use_normalized_coordinates=True,
+                max_boxes_to_draw=200,
+                min_score_thresh=.35,
+                agnostic_mode=False)
+
+            cv2.imwrite(dst_filename,src_image)
+
+
 
     def createTFRecord(self,src_path,labels,size, train_per = 0.8,jpeg_quality=30, interpolation=None):
+        self._size = size
+        self._num_classes = len(Labels)
         DetectionTF.createLabelMap(self.getLablemapFilename(),labels)
-        DetectionTF.convertImages2TFRec(src_path,self.getLablemapFilename(),self.getLablemapFilename(),labels,size,
+        DetectionTF.convertImages2TFRec(src_path,self.getDatasetPath(),self.getLablemapFilename(),labels,size,
                                         train_per,True,jpeg_quality,interpolation)
 
+    @staticmethod
+    def addModel(host_name,pretrained_models_path, url):
+        if not os.path.exists(pretrained_models_path) :
+            os.mkdir(pretrained_models_path)
+
+        if not os.path.exists(os.path.join(pretrained_models_path,host_name)) :
+            host_full_name = os.path.join(host_name,pretrained_models_path)
+            print('Downloading model ...')
+            urllib.request.urlretrieve(url, host_full_name)
+            print('Extracting model ...')
+            FileUtility.extractFile(host_full_name, pretrained_models_path)
 
 
 

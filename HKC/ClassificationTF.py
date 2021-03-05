@@ -6,14 +6,14 @@ import os
 from keras.callbacks import TensorBoard
 from keras.callbacks import ModelCheckpoint
 import tensorflow as tf
-from .ClassifivationModelsTF import *
 from time import time
 from  keras.models import load_model
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array, array_to_img
 from tqdm import tqdm
 from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
-from GTClassification import *
+from .GTClassification import *
+from .ClassificationModelsTF import *
 
 class ClassificationTF:
     def __init__(self,deploy_path,org_classes ,delimiter = ','):
@@ -38,7 +38,7 @@ class ClassificationTF:
         return  self._join('images')
 
     def selectModel(self, type):
-        self._model = ClsModels.getModel(type,self._size,len(self._org_classes))
+        self._model = ClassificationModelsTF.getModel(type,self._size,len(self._org_classes))
 
     
     def train(self, optimizer,loss = 'categorical_crossentropy',metrics = 'accuracy',tl_checkpoint = None, epochs=1000):
