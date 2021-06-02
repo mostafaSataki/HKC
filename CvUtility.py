@@ -54,7 +54,7 @@ class CvUtility:
     dst_filenames = FileUtility.getDstFilenames2(src_filenames,src_path, dst_path)
 
 
-    dst_filenames = FileUtility.getChangeFilesExt(dst_filenames, dst_ext)
+    dst_filenames = FileUtility.changeFilesExt(dst_filenames, dst_ext)
 
     for i in tqdm(range(len(dst_filenames)), ncols=100):
        dst_filename = dst_filenames[i]
@@ -721,11 +721,47 @@ class CvUtility:
       filename = filenames[i]
       result.append(CvUtility.readImage(filename,size,norm,gray,float_type))
     return result
-  
+
+  @staticmethod
+  def resizeDown(src_image,  size, interpolation ) :
+
+    dst_image = src_image.copy()
+    shape = dst_image.shape
+    w = shape[1]
+    h = shape[0]
+
+    while (w / 2 > size[0]) and ( h / 2 > size[1]) :
+      dst_image =cv2.pyrDown(dst_image,(int(w / 2), int(h / 2)))
+      shape = dst_image.shape
+      w = shape[1]
+      h = shape[0]
+
+    shape = dst_image.shape
+    w = shape[1]
+    h = shape[0]
+
+    if (w != size[0] or h != size[1]):
+       dst_image = cv2.resize(dst_image,  size, 0, 0, interpolation);
+
+    return  dst_image
+
+  @staticmethod
+  def resizeDownBatch(src_path,dst_path,dst_size, interpolation=None,jpeg_quality = 30):
 
 
+    src_files = FileUtility.getFolderImageFiles(src_path)
+    if src_path != dst_path :
+      FileUtility.copyFullSubFolders(src_path,dst_path
+                                   )
+    dst_files = FileUtility.getDstFilenames2(src_files,src_path, dst_path)
+    dst_files = FileUtility.changeFilesExt(dst_files,'jpg')
 
-
+    for i in tqdm(range(len(src_files)), ncols=100):
+      src_file = src_files[i]
+      dst_file = dst_files[i]
+      src_image = cv2.imread(src_file)
+      dst_image = CvUtility.resizeDown(src_image, dst_size,interpolation)
+      cv2.imwrite(dst_file,dst_image,[cv2.IMWRITE_JPEG_QUALITY,jpeg_quality])
 
 
 

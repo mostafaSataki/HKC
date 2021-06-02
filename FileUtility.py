@@ -610,6 +610,18 @@ class FileUtility:
     return result
 
   @staticmethod
+  def changeFilesnamePrefix(files,pretfix):
+    result = []
+
+    for file in files:
+      tokens = FileUtility.getFileTokens(file)
+      dst_filename = os.path.join( tokens[0] ,pretfix+ tokens[1]+tokens[2])
+      result.append(dst_filename)
+
+
+    return result
+
+  @staticmethod
   def add2Filename(filename,value):
     tokens = FileUtility.getFileTokens(filename)
     return  os.path.join( tokens[0],tokens[1]+value+tokens[2])

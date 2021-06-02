@@ -8,7 +8,7 @@ from tqdm import tqdm
 import math
 import subprocess
 from scipy.spatial import distance as dist
-from  HKC.CvUtility import *
+from  .CvUtility import *
 
 class RectUtility:
 
@@ -34,6 +34,21 @@ class RectUtility:
 
     return RectUtility.twoPointsToRect([x1p,r2[1],x2p,r2[3]])
 
+  @staticmethod
+  def toYoloRect(rct,back_rect):
+    w = back_rect[2]
+    h = back_rect[3]
+
+    center = CvUtility.getRectCenter(rct)
+    region = [center[0],center[1],rct[2]/2,rct[3]/2]
+    return [region[0] / w ,region[1] / h , region[2] / w ,region[3] / h]
+
+  @staticmethod
+  def fromYoloRect(yolo_rect,back_rect):
+    w = back_rect[0]
+    h = back_rect[1]
+    region = [yolo_rect[0] - yolo_rect[2],yolo_rect[1] - yolo_rect[3],yolo_rect[2] * 2 ,yolo_rect[3] * 2]
+    return [int(region[0] * w),int(region[1] * h),int(region[2] * w) ,int(region[3] * h)]
 
 
   @staticmethod

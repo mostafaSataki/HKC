@@ -1,7 +1,7 @@
 from .GTData import  *
 from .YoloRegion import  *
 import os
-from  HKC.FileUtility import  *
+from  ..FileUtility import  *
 import cv2
 
 

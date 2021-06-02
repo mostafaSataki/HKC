@@ -4,6 +4,9 @@ from .Labels import  *
 import  cv2
 from HKC.FileUtility import *
 import numpy as np
+from tqdm import tqdm
+from shutil import copyfile
+
 
 class YOLO(GTBase):
     def __init__(self,defaul_size = ()):
@@ -44,5 +47,86 @@ class YOLO(GTBase):
             labels.append(obj.label_id_)
         return regions, labels
 
+
+class YOLOFolder :
+    @staticmethod
+    def createYoloBackgroundFolder(src_path,dst_path):
+        src_image_files = FileUtility.getFolderImageFiles(src_path)
+
+
+        dst_image_files = FileUtility.getDstFilenames2(src_image_files,src_path,dst_path)
+        dst_gt_files = FileUtility.changeFilesExt(dst_image_files,'txt')
+
+        for i in tqdm(range(len(src_image_files)), ncols=100):
+            src_image_file = src_image_files[i]
+
+
+            dst_image_file = dst_image_files[i]
+            dst_gt_file = dst_gt_files[i]
+
+            copyfile(src_image_file, dst_image_file)
+            with open(dst_gt_file,'w')  as f :
+                f.write('')
+                f.close()
+
+
+    @staticmethod
+    def createYoloFolder(src_path,dst_path, label_index ,label):
+        src_image_files = FileUtility.getFolderImageFiles(src_path)
+
+        dst_image_files = FileUtility.getDstFilenames2(src_image_files,src_path,dst_path)
+        dst_image_files = FileUtility.changeFilesnamePrefix(dst_image_files,label+"_")
+
+        dst_gt_files =  FileUtility.changeFilesExt(dst_image_files,'txt')
+
+
+        FileUtility.copyFilesByName(src_image_files,dst_image_files)
+
+
+        for i in tqdm(range(len(dst_image_files)), ncols=100):
+            dst_image_file = dst_image_files[i]
+            dst_gt_file = dst_gt_files[i]
+
+            src_image = cv2.imread(dst_image_file)
+
+            yolo_rct = [0.5,0.5,1.0,1.0   ]
+
+            with open(dst_gt_file,'w') as f:
+                s = str(label_index) + ' '
+                count = 4
+                sep = ' '
+                for i in range(count):
+                    s += str(yolo_rct[i])
+                    if i < count - 1:
+                        s += sep
+                f.write(s+'\n')
+        f.close()
+
+
+
+
+
+    @staticmethod
+    def createYoloRootFolder(src_path,dst_path):
+
+        sub_folders = FileUtility.getSubfolders(src_path)
+        FileUtility.createClearFolder(dst_path)
+        classes_file = os.path.join(dst_path,'classes.txt')
+        with open(classes_file,'w') as f:
+            label_index = 0
+            for sub_folder in sub_folders:
+                src_cur_path = os.path.join(src_path,sub_folder)
+                dst_cur_path = os.path.join(dst_path, sub_folder)
+
+                if sub_folder == "0":
+                    YOLOFolder.createYoloBackgroundFolder(src_cur_path,dst_path)
+                else :
+                    f.write(sub_folder+'\n')
+                    YOLOFolder.createYoloFolder(src_cur_path,dst_path,label_index,sub_folder)
+                    label_index += 1
+
+
+
+        f.close()
 
 

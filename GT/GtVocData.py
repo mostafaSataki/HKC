@@ -4,7 +4,7 @@ from xml.etree.ElementTree import Element, SubElement
 from lxml import etree
 from .VocRegion import  *
 import codecs
-from  HKC.FileUtility import  *
+from  ..FileUtility import  *
 import  cv2
 
 
