@@ -8,6 +8,9 @@ from tqdm import tqdm
 import math
 import subprocess
 from scipy.spatial import distance as dist
+from  .Utility import *
+import tensorflow as tf
+from multiprocessing import Pool
 
 class CvUtility:
 
@@ -762,6 +765,60 @@ class CvUtility:
       src_image = cv2.imread(src_file)
       dst_image = CvUtility.resizeDown(src_image, dst_size,interpolation)
       cv2.imwrite(dst_file,dst_image,[cv2.IMWRITE_JPEG_QUALITY,jpeg_quality])
+
+
+  @staticmethod
+  def loadImages(files,gray = False):
+    images = []
+    flag = 1
+    if gray :
+      flag = 0
+
+    for i in tqdm(range(len(files)), ncols=100):
+        file = files[i]
+        images.append(cv2.imread(file,flag))
+
+
+    return images
+
+
+
+  @staticmethod
+  def loadDatasetFromFolder(src_path, gray = False, numeric_label = False, train_per = 0.8, total_per = 1.0):
+     files ,lbls = FileUtility.loadFilenamesLabels(src_path )
+     total_count = len(files)
+     per_count = int(total_count * total_per)
+
+     train_count = int(per_count * train_per)
+
+     c = list(zip(files, lbls))
+     random.shuffle(c)
+     files, lbls =     [list(a) for a in zip(*c)]
+
+
+     files = files[:per_count]
+     lbls = lbls[:per_count]
+
+     images = CvUtility.loadImages(files,gray)
+     if numeric_label:
+       labels,labels_tuple = Utility.getNumericLabels(lbls)
+     else :
+       labels = lbls
+       labels_tuple ={}
+
+
+     train_images_dataset = tf.data.Dataset.from_tensor_slices(images[:train_count])
+     train_labels_dataset = tf.data.Dataset.from_tensor_slices(labels[:train_count])
+
+     test_images_dataset = tf.data.Dataset.from_tensor_slices(images[train_count:])
+     test_labels_dataset = tf.data.Dataset.from_tensor_slices(labels[train_count:])
+
+     return tf.data.Dataset.zip((train_images_dataset, train_labels_dataset)),tf.data.Dataset.zip((test_images_dataset, test_labels_dataset)),labels_tuple
+
+
+
+     
+
 
 
 

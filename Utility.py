@@ -239,6 +239,21 @@ class Utility:
      now = datetime.datetime.now()
      return now.strftime("D-%Y-%m-%d-T-%H-%M-%S")
 
+  @staticmethod
+  def getNumericLabels(str_labels):
+      unique_labels = list(set(str_labels))
+      unique_labels = sorted(unique_labels)
 
+      labels_tuple = {}
+      labels_tuple_inv = {}
+      for i,u in enumerate( unique_labels):
+        labels_tuple[i] = u
+        labels_tuple_inv[u] = i
+
+      result = []
+      for str_label in str_labels:
+          result.append( labels_tuple_inv[str_label])
+
+      return result,labels_tuple
 
 

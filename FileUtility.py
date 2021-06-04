@@ -838,6 +838,24 @@ class FileUtility:
     latest_file = max(list_of_files, key=os.path.getctime)
     return latest_file
 
+  @staticmethod
+  def loadFilenamesLabels(src_path):
+    filenames = []
+    labels = []
+    indexs = []
+    counter = 0
+    sub_folders = FileUtility.getSubfolders(src_path)
+    for sub_folder in sub_folders:
+      cur_path = os.path.join(src_path,sub_folder)
+      cur_filenames = FileUtility.getFolderImageFiles(cur_path)
+      filenames.extend(cur_filenames)
+      labels.extend([sub_folder] * len(cur_filenames))
+      indexs.extend([counter] * len(cur_filenames))
+      counter += 1
+
+    return filenames,labels
+
+
 
 
 
