@@ -1,18 +1,23 @@
+
 from .Utility import *
 from .FileUtility import *
-from .GTDetection import *
+
 from object_detection.utils import dataset_util
 import pandas as pd
 import tensorflow as tf
 from tqdm import tqdm
-from .GTDetection import *
+
 from .DetectionModelsTF import *
 import tensorflow as tf
 import time
 import cv2
 import numpy as np
-from object_detection.utils import visualization_utils as viz_utils
-from object_detection.utils import label_map_util
+from .GTDetection import *
+
+# from object_detection.utils import visualization_utils as viz_utils
+# from object_detection.utils import label_map_util
+
+
 
 class DetectionTF:
     def __init__( self,object_detection_path, deploy_path):
@@ -199,10 +204,10 @@ class DetectionTF:
         if not os.path.exists(dst_path):
             os.mkdir(dst_path)
 
-        branchs = FileUtility.getFolderFiles(csv_path, 'csv', False, False)
+        branchs = FileUtility.getSubfolders(csv_path)
         for branch in branchs:
             DetectionTF.csv2TFRec(images_path, os.path.join(csv_path, branch + '.csv'),
-                                   os.path.join(dst_path, branch + '.record'), branch, labels)
+                                   os.path.join(dst_path, branch + '.tfrecord'), branch, labels)
 
 
     @staticmethod
@@ -221,12 +226,6 @@ class DetectionTF:
         FileUtility.createClearFolder(temp_path)
 
 
-    @staticmethod
-    def createLabelMap(dst_filename, labels):
-        with open(dst_filename, "w") as file:
-            for i, label in enumerate(labels):
-                str = "item {{\n\tid: {0}\n\tname: '{1}'\n}}\n".format(i + 1, label)
-                file.write(str)
 
 
     @staticmethod
@@ -263,7 +262,7 @@ class DetectionTF:
         if os.path.exists(filename):
             result = DetectionTF.readLabelMap(filename)
         else:
-            DetectionTF.createLabelMap(filename, input_labels)
+            GTDetection.createLabelMap(filename, input_labels)
             result = input_labels
 
         return result
@@ -420,59 +419,50 @@ class DetectionTF:
     def createTFRecord(self,src_path,labels,size, train_per = 0.8,jpeg_quality=30, interpolation=None):
         self._size = size
         self._num_classes = len(Labels)
-        DetectionTF.createLabelMap(self.getLablemapFilename(),labels)
+        GTDetection.createLabelMap(self.getLablemapFilename(),labels)
         DetectionTF.convertImages2TFRec(src_path,self.getDatasetPath(),self.getLablemapFilename(),labels,size,
                                         train_per,True,jpeg_quality,interpolation)
 
     @staticmethod
-    def addModel(host_name,pretrained_models_path, url):
-        if not os.path.exists(pretrained_models_path) :
-            os.mkdir(pretrained_models_path)
+    def load_model_from_web(models_path, model_name='ssd_mobilenet_v2_fpnlite_640x640_coco17_tpu-8',
+                            url = 'http://download.tensorflow.org/models/object_detection/tf2/20200711/'):
 
-        if not os.path.exists(os.path.join(pretrained_models_path,host_name)) :
-            host_full_name = os.path.join(host_name,pretrained_models_path)
-            print('Downloading model ...')
-            urllib.request.urlretrieve(url, host_full_name)
-            print('Extracting model ...')
-            FileUtility.extractFile(host_full_name, pretrained_models_path)
+        # model_name = 'ssd_mobilenet_v2_fpnlite_640x640_coco17_tpu-8'
+        # MODEL = 'ssd_mobilenet_v2_fpnlite_320x320_coco17_tpu-8'
+        # MODEL = 'centernet_resnet50_v2_512x512_coco17_tpu-8'
+        # MODEL = 'ssd_mobilenet_v2_fpnlite_640x640_coco17_tpu-8'
 
+        model_filename = model_name + '.tar.gz'
+        dst_filename = os.path.join(models_path, model_filename)
+        if not (os.path.exists(models_path)):
+            os.mkdir(models_path)
 
+        print('downloading model ...')
+        if not (os.path.exists(dst_filename)):
+            urllib.request.urlretrieve(url + model_filename, dst_filename)
+            
+        print('extracting model ...')
+        tar = tarfile.open(dst_filename)
+        tar.extractall(path=models_path)
+        tar.close()
+        
+    @staticmethod
+    def get_labels_from_labelmap(filename):
+        with open(filename) as f:
+            lines = f.readlines()
 
+        result = []
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        for line in lines:
+            line = line.strip()
+            if line != "":
+                tokens = line.split(':')
+                if len(tokens) == 2 and tokens[0] == 'name':
+                    result.append(tokens[1].strip().replace("'",""))
+        return result
+    
+    @staticmethod
+    def edit_config_file(filename,new_classcount):
+        pass
 
 

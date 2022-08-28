@@ -8,7 +8,8 @@ from .GT.VOC import *
 from .GT.YOLO import *
 from .CvUtility import *
 import  cv2
-
+from .Utility import *
+from .DetectionTF import DetectionTF
 
 class GTFormat(enum.Enum):
     YOLO = 1
@@ -111,8 +112,13 @@ class GTDetection:
             for sub_folder in sub_folders:
                 GTDetection.convertYolo2Voc(os.path.join(src_path, sub_folder), os.path.join(dst_path, sub_folder))
 
+
+
+
     @staticmethod
     def convertVoc2Yolo(src_path, dst_path):
+
+
         src_image_filesname = FileUtility.getFolderImageFiles(src_path)
 
         src_voc = VOC()
@@ -130,11 +136,54 @@ class GTDetection:
             dst_yolo.new(dst_image_filename)
 
             for obj in src_voc.data_.objects_:
-                dst_yolo.addByLable(obj.region_.getCvRect(), obj.name_)
+                dst_yolo.addByLabel(obj.region_.getCvRect(), obj.name_)
 
             dst_yolo.save()
 
         dst_yolo.labels_.save(dst_path)
+
+    @staticmethod
+    def _write_labels(labels, filename):
+        with open(filename, 'w') as f:
+            for label in labels:
+                f.write(label + '\n')
+
+    @staticmethod
+    def convertVoc2Yolo2(src_path, dst_path, labelmap_filename =None, labels=None):
+        if not os.path.exists(dst_path):
+            os.makedirs(dst_path)
+
+        if labels == None:
+            if labelmap_filename == None:
+                _labels = GTDetection.get_voc_folder_labels(voc_folder)
+            else:
+                _labels = DetectionTF.get_labels_from_labelmap(labelmap_filename)
+        else:
+            _labels = labels
+
+        src_image_filesname = FileUtility.getFolderImageFiles(src_path)
+
+        src_voc = VOC()
+        # src_voc.labels_.load(src_path)
+
+        dst_yolo = YOLO(_labels)
+
+        for i, src_image_filename in enumerate(src_image_filesname):
+            src_gt_filename = FileUtility.changeFileExt(src_image_filename, 'xml')
+
+            dst_image_filename = FileUtility.getDstFilename2(src_image_filename, src_path, dst_path)
+
+            FileUtility.copyFile(src_image_filename, dst_image_filename)
+            src_voc.load(src_gt_filename)
+            dst_yolo.new(dst_image_filename)
+
+            for obj in src_voc.data_.objects_:
+                dst_yolo.addByLabel(obj.region_.getCvRect(), obj.name_)
+
+            dst_yolo.save()
+
+        # dst_yolo.labels_.save(dst_path)
+        GTDetection._write_labels(_labels, os.path.join(dst_path, 'labels.txt'))
 
     @staticmethod
     def convertGt(src_path, dst_path, src_format=None, dst_format=None):
@@ -501,12 +550,18 @@ class GTDetection:
             for sub_folder in sub_folders:
                 GTDetection.correctnessYoloLableFile(os.path.join(src_path, sub_folder), labels)
 
+
     @staticmethod
-    def resize(image_filename, size, jpeg_quality=30, interpolation=None):
+    def resize(image_filename, size, jpeg_quality=30, interpolation=None,recreate = False):
         gt, gt_filename = GTDetection.loadGT(image_filename)
+
+        if FileUtility.file_exist_nozero(gt_filename) and FileUtility.file_exist_nozero(image_filename) and recreate == False:
+            return
+
         src_image = cv2.imread(image_filename)
         dst_image, scale = CvUtility.resizeImage(src_image, size, interpolation)
         gt.data_.size_ = dst_image.shape
+        gt.data_.path_ = image_filename
         for obj in gt.data_.objects_:
             obj.region_.setCvRect(RectUtility.resize(obj.region_.getCvRect(), scale))
 
@@ -514,7 +569,59 @@ class GTDetection:
         gt.save(gt_filename)
 
     @staticmethod
-    def resizeBatch(src_path, dst_path, size, jpeg_quality=30, interpolation=None):
+    def rotate(image_filename,rotate_code, rotate_img = True, jpeg_quality=30, interpolation=None):
+        gt, gt_filename = GTDetection.loadGT(image_filename)
+        src_image = cv2.imread(image_filename)
+        gt.data_.path_ = image_filename
+        angle = 0
+        if rotate_code == cv2.ROTATE_90_CLOCKWISE:
+            angle = 90
+        elif rotate_code == cv2.ROTATE_90_COUNTERCLOCKWISE:
+            angle = -90
+        elif rotate_code == cv2.ROTATE_180:
+            angle = 180
+
+        background = RectUtility.getImageRect(src_image)
+        cntr = RectUtility.getRectCenter(background)
+
+        src_size = [src_image.shape[1],src_image.shape[0]]
+        if rotate_img :
+            dst_image = cv2.rotate(src_image, rotate_code)
+            gt.data_.size_ = dst_image.shape
+        else :
+            temp =  background[2]
+            background[2] = background[3]
+            background[3] = temp
+            cntr = RectUtility.getRectCenter(background)
+
+
+        background_r = RectUtility.rotateRect(background,cntr,angle,False)
+        offset =  [-background_r[0],-background_r[1]]
+
+        org_list = []
+        r_list = []
+
+        for obj in gt.data_.objects_:
+            org_list.append(obj.region_.getCvRect())
+            r = RectUtility.rotateRect(obj.region_.getCvRect(),cntr, angle,False)
+            r = RectUtility.moveRect(r,offset)
+            r_list.append(r)
+            obj.region_.setCvRect(r)
+
+
+        # image = dst_image.copy()
+        # image = RectUtility.drawRects(image,org_list,thicknes= 5)
+        # image = RectUtility.drawRects(image, r_list,color=(255,0,0), thicknes=5)
+        # CvUtility.imshowScale("view",image,(640,640))
+        # cv2.waitKey(0)
+
+        if rotate_img :
+          cv2.imwrite(image_filename, dst_image, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
+        gt.save(gt_filename)
+
+
+    @staticmethod
+    def resizeBatch(src_path, dst_path, size, jpeg_quality=30, interpolation=None,recreate = False):
         FileUtility.copyFullSubFolders(src_path, dst_path)
 
         src_image_filesname, src_gt_filesname = GTDetection.getGtFiles(src_path)
@@ -527,7 +634,25 @@ class GTDetection:
 
         for i in tqdm(range(len(dst_image_filesname)), ncols=100):
             dst_image_filename = dst_image_filesname[i]
-            GTDetection.resize(dst_image_filename, size, jpeg_quality, interpolation)
+            GTDetection.resize(dst_image_filename, size, jpeg_quality, interpolation,recreate)
+
+    @staticmethod
+    def rotateBatch(src_path,dst_path,post_name, rotate_code, rotate_img = True, jpeg_quality=30, interpolation=None):
+        FileUtility.copyFullSubFolders(src_path, dst_path)
+
+        src_image_filesname, src_gt_filesname = GTDetection.getGtFiles(src_path)
+
+        dst_image_filesname = FileUtility.getDstFilenames2(src_image_filesname, src_path, dst_path)
+        dst_image_filesname = FileUtility.changeFilesnamePostfix(dst_image_filesname,post_name)
+        dst_gt_filesname = FileUtility.getDstFilenames2(src_gt_filesname, src_path, dst_path)
+        dst_gt_filesname = FileUtility.changeFilesnamePostfix(dst_gt_filesname,post_name)
+
+        FileUtility.copyFilesByName(src_image_filesname, dst_image_filesname)
+        FileUtility.copyFilesByName(src_gt_filesname, dst_gt_filesname)
+
+        for i in tqdm(range(len(dst_image_filesname)), ncols=100):
+            dst_image_filename = dst_image_filesname[i]
+            GTDetection.rotate(dst_image_filename,rotate_code,rotate_img,jpeg_quality, interpolation)
 
     @staticmethod
     def flipHorz(image_filename, jpeg_quality=30):
@@ -677,15 +802,20 @@ class GTDetection:
         return image_filenames, gt_filenames
 
     @staticmethod
-    def splitGT(src_path, train_per=0.8):
+    def splitGT(src_path, valid_per=0.2, test_per=0.2):
         image_filenames, gt_filenames = GTDetection.getGtFiles(src_path)
-        train_indexs, test_indexs = GTUtility.getGTIndexs(len(image_filenames), train_per, IndexType.random)
+        train_indexs,valid_indexs, test_indexs = GTUtility.getGTIndexs(len(image_filenames), valid_per,test_per, IndexType.random)
 
         train_image_filenames, train_gt_filenames = GTDetection.getGTFiles(image_filenames, gt_filenames, train_indexs)
-        test_image_filenames = Utility.getListByIndexs(image_filenames, test_indexs)
-        test_gt_filenames = Utility.getListByIndexs(gt_filenames, test_indexs)
+        valid_image_filenames, valid_gt_filenames = GTDetection.getGTFiles(image_filenames, gt_filenames, valid_indexs)
+        test_image_filenames, test_gt_filenames = GTDetection.getGTFiles(image_filenames, gt_filenames, test_indexs)
 
-        return train_image_filenames, train_gt_filenames, test_image_filenames, test_gt_filenames
+
+
+        return train_image_filenames, train_gt_filenames, valid_image_filenames, valid_gt_filenames, test_image_filenames, test_gt_filenames
+
+
+
 
     @staticmethod
     def GT2Csv(src_path, csv_filename):
@@ -729,7 +859,7 @@ class GTDetection:
 
     @staticmethod
     def copySplitGT2(src_media, dst_path, train_per=0.8, copy_to_root=False, select_type=IndexType.random,
-                     clear_dst=False, branchs=['train', 'test']):
+                     clear_dst=False, branchs=['train', 'eval']):
         media = src_media
         media_type, ext = FileUtility.getMediaInfo(src_media)
         if media_type == MediaType.file and ext == 'zip':
@@ -1019,6 +1149,37 @@ class GTDetection:
         for i in tqdm(range(len(src_image_files)), ncols=100):
             FileUtility.copyFile(src_image_files[i],dst_image_files[i])
             FileUtility.copyFile(src_gt_files[i], dst_gt_files[i])
+
+
+    @staticmethod
+    def get_voc_file_labels(voc_filename):
+         data = GTDetection.getObjectsRegionsLabels(voc_filename)
+         return data[1]
+    @staticmethod
+    def get_voc_folder_labels(voc_folder):
+        files =  GTDetection.getFolderGtFiles(voc_folder)
+        result = []
+        for file in files:
+            result.extend( GTDetection.get_voc_file_labels(file))
+
+        return  [s.strip() for s in Utility.getUniqueValues(result)]
+    
+    @staticmethod
+    def create_labelmap_from_voc_folder(voc_folder,labelmap_filename):
+        labels = GTDetection.get_voc_folder_labels(voc_folder)
+        GTDetection.createLabelMap(labelmap_filename, labels)
+
+
+    @staticmethod
+    def createLabelMap(dst_filename, labels):
+        with open(dst_filename, "w") as file:
+            for i, label in enumerate(labels):
+                str = "item {{\n\tid: {0}\n\tname: '{1}'\n}}\n".format(i + 1, label)
+                file.write(str)
+
+
+
+
 
 
 

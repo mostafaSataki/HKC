@@ -5,7 +5,9 @@ from enum import Enum
 from urllib.parse import urlparse
 import sys
 import datetime
-
+import numpy as np
+from operator import itemgetter
+import threading
 
 class IndexType(Enum):
   begin_total = 1
@@ -255,5 +257,17 @@ class Utility:
           result.append( labels_tuple_inv[str_label])
 
       return result,labels_tuple
+
+  @staticmethod
+  def breakList(src_list,n):
+    l2 = np.array_split(range(len(src_list)), n)
+    result = []
+    for i in range(n):
+       l3 = l2[i].tolist()
+       result.append( itemgetter(*l3)(src_list))
+    return result
+
+
+
 
 

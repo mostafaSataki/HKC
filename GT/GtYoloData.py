@@ -10,6 +10,12 @@ class GtYoloItem( GTItem):
         self.label_id_ = 0
         self.region_ = YoloRegion(image_size)
 
+    def clone(self):
+        result = GtYoloItem(self.region_.image_size_)
+        result.region_ = self.region_.clone()
+        result.label_id_ = self.label_id_
+        return result
+
     def toStr(self):
         return str(self.label_id_)+' '+ self.region_.str()
 
@@ -60,10 +66,13 @@ class GtYoloData(GTData):
         if filename != None:
             self.filename_ = filename
 
+        lines = []
+        for item in self.objects_:
+            lines.append(item.toStr()+'\n')
+
         with open(self.filename_,'w') as file :
-            for item in self.objects_:
-                file.write(item.toStr())
-            file.close()
+           file.writelines(lines)
+           file.close()
 
 
     def addYoloRegion(self, region, label_id):
@@ -77,3 +86,13 @@ class GtYoloData(GTData):
         item.label_id_ = label_id
         item.region_.setCvRect(rect)
         self.objects_.append(item)
+
+    def clone(self):
+        result = GtYoloData()
+        result.size_ = self.size_
+        result.filename_ = self.filename_
+
+        for obj in self.objects_:
+            result.objects_.append(obj.clone())
+
+        return result

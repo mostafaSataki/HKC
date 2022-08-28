@@ -1,7 +1,10 @@
 import os
 class Labels:
-    def __init__(self):
-        self.items_ = []
+    def __init__(self,labels = None):
+        if labels is None:
+            self.items_ = []
+        else:   self.items_ = labels
+
 
     def add(self,value):
         if not value in self.items_ :

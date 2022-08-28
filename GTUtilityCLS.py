@@ -60,7 +60,19 @@ class GTUtilityClS:
 
         return train_files,val_files
 
-        
+    @staticmethod
+    def splitFolderFiles(src_path,train_per = 0.8,exts = []):
+        train_files = []
+        val_files = []
+        if len(exts) == 0:
+            return train_files,val_files
+
+        src_files = FileUtility.getFolderFiles(src_path,exts)
+        train_indexs, val_indexs = GTUtility.getGTRandomIndexs(len(src_files), train_per)
+        train_files = Utility.getListByIndexs(src_files, train_indexs)
+        val_files = Utility.getListByIndexs(src_files, val_indexs)
+
+        return  train_files,val_files
 
     @staticmethod
     def splitGTFolder(src_path,dst_path,train_per = 0.8):

@@ -9,9 +9,10 @@ import math
 import subprocess
 from scipy.spatial import distance as dist
 from  .Utility import *
-import tensorflow as tf
 from multiprocessing import Pool
-
+from PIL import Image, ImageSequence
+import imutils
+ 
 class CvUtility:
 
   @staticmethod
@@ -42,6 +43,15 @@ class CvUtility:
     is_success, im_buf_arr = cv2.imencode(".jpg", image,params)
     im_buf_arr.tofile(filename)
 
+  @staticmethod
+  def imwrite_branch(img,dst_path,src_filename,dst_branch ='exp'):
+    dst_path_branch = FileUtility.get_next_path(dst_path, dst_branch)
+
+    if not os.path.exists(dst_path_branch):
+      os.makedirs(dst_path_branch)
+
+    dst_filename = FileUtility.getDstFilename(src_filename, dst_path_branch)
+    cv2.imwrite(dst_filename,img)
 
   @staticmethod
   def changeImageFormat(src_filename,dst_filename,jpeg_quality = 30):
@@ -65,6 +75,16 @@ class CvUtility:
        CvUtility.changeImageFormat(src_filenames[i],dst_filename,jpeg_quality)
        if delete_source:
          os.remove(src_filenames[i])
+
+  @staticmethod
+  def change_filename_to_foldername(src_path):
+
+    src_files = FileUtility.getFolderImageFiles(src_path)
+    for i in tqdm(range(len(src_files)), ncols=100):
+      src_file = src_files[i]
+      f = FileUtility.get_file_upfolder(src_file)
+      f_name = FileUtility.changeFileName(src_file, f)
+      os.rename(src_file, f_name)
 
   @staticmethod
   def getImageSize(src):
@@ -119,6 +139,19 @@ class CvUtility:
       r = CvUtility.findRect(src)
       x,y,w,h = r
       return  src[y:y+h,x:x+w]
+
+  @staticmethod
+  def crop_roi(image,roi):
+    x, y, w, h = roi
+    return image[y:y + h, x:x + w]
+
+  @staticmethod
+  def crop_rois(image, rois):
+      result = []
+      for roi in rois:
+        result.append(CvUtility.crop_roi(image,roi))
+      return result
+
 
   @staticmethod
   def getChannel(src):
@@ -261,6 +294,25 @@ class CvUtility:
       cv2.imwrite(dst_filename,dst_image,[cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
 
   @staticmethod
+  def resizeGray(src_path,dst_path,dst_size, post_fix = "",jpeg_quality = 70):
+    src_files = FileUtility.getFolderImageFiles(src_path)
+    dst_files = FileUtility.getDstFilenames2(src_files,src_path,dst_path)
+
+    FileUtility.copyFullSubFolders(src_path,dst_path)
+
+    if post_fix != "":
+       dst_files = FileUtility.changeFilesnamePostfix(dst_files,post_fix)
+
+    for i in tqdm(range( len(src_files)), ncols=100):
+      src_filename = src_files[i]
+      dst_filename = dst_files[i]
+
+      src_image = cv2.imread(src_filename,0)
+      dst_image = cv2.resize(src_image,dst_size,cv2.INTER_CUBIC)
+
+      cv2.imwrite(dst_filename,dst_image,[cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
+
+  @staticmethod
   def toGray(src_path,dst_path, post_fix = "",jpeg_quality = 30):
     src_files = FileUtility.getFolderImageFiles(src_path)
     if src_path != dst_path :
@@ -301,6 +353,13 @@ class CvUtility:
   def expandRect(rect,expand_size):
     half_size = (int(expand_size[0] / 2),int(expand_size[1] / 2))
     return (rect[0] - half_size[0],rect[1] - half_size[1],rect[2] +expand_size[0] , rect[3]+ expand_size[1])
+
+  @staticmethod
+  def expandRects(rects,expand_size):
+    result = []
+    for rect in rects:
+      result.append(CvUtility.expandRect(rect,expand_size))
+    return result
 
   @staticmethod
   def getSizeCofi(size,cofi):
@@ -639,9 +698,6 @@ class CvUtility:
     if w < 0 or h < 0: return ()  # or (0,0,0,0) ?
     return (x, y, w, h)
 
-  @staticmethod
-  def getRectCenter(region):
-    return (int(region[0] + region[2]/2) ,int(region[1] + region[3]/2))
 
   @staticmethod
   def rectsDistance(region1,region2):
@@ -783,48 +839,314 @@ class CvUtility:
 
 
 
+ 
   @staticmethod
-  def loadDatasetFromFolder(src_path, gray = False, numeric_label = False, train_per = 0.8, total_per = 1.0):
-     files ,lbls = FileUtility.loadFilenamesLabels(src_path )
-     total_count = len(files)
-     per_count = int(total_count * total_per)
+  def imshowScale(title,image,size):
 
-     train_count = int(per_count * train_per)
+    d_size,_ = CvUtility.fitOnSizeCorrect(image,size)
+    d_image = cv2.resize(image,d_size)
+    cv2.imshow(title,d_image)
 
-     c = list(zip(files, lbls))
-     random.shuffle(c)
-     files, lbls =     [list(a) for a in zip(*c)]
+  @staticmethod
+  def extarctTiffMP(filename, dst_path, prefix, ext = 'png'):
 
+    im = Image.open(filename)
+    # compression = im.info["compression"]
+    i = 0
+    for page in ImageSequence.Iterator(im):
+      np_img = np.array(page.convert("L"))
+      dst_filename = os.path.join(dst_path, prefix + str(i) + '.' + ext)
+      cv2.imwrite(dst_filename, np_img)
+      i = i +1
 
-     files = files[:per_count]
-     lbls = lbls[:per_count]
-
-     images = CvUtility.loadImages(files,gray)
-     if numeric_label:
-       labels,labels_tuple = Utility.getNumericLabels(lbls)
-     else :
-       labels = lbls
-       labels_tuple ={}
+      # result.append(np.fromarray(np.array(page)))
 
 
-     train_images_dataset = tf.data.Dataset.from_tensor_slices(images[:train_count])
-     train_labels_dataset = tf.data.Dataset.from_tensor_slices(labels[:train_count])
+  @staticmethod
+  def saveTiffMP(filename,images):
+    imlist = []
+    for m in images:
+      imlist.append(Image.fromarray(m))
 
-     test_images_dataset = tf.data.Dataset.from_tensor_slices(images[train_count:])
-     test_labels_dataset = tf.data.Dataset.from_tensor_slices(labels[train_count:])
-
-     return tf.data.Dataset.zip((train_images_dataset, train_labels_dataset)),tf.data.Dataset.zip((test_images_dataset, test_labels_dataset)),labels_tuple
-
-
-
-     
+    imlist[0].save(filename, compression="group4", save_all=True,
+                   append_images=imlist[1:])
 
 
 
+  @staticmethod
+  def saveTiffMPFromPath(dst_filename, src_path):
+    src_files = FileUtility.getFolderImageFiles(src_path)
+
+    imlist = []
+    for i in tqdm(range(len(src_files)), ncols=100):
+      src_file =  src_files[i]
+      img = Image.open(src_file)
+      img = img.convert('1')
+      imlist.append(img)
+
+    imlist[0].save(dst_filename, compression="group4", save_all=True,
+                   append_images=imlist[1:])
+
+  @staticmethod
+  def saveImages(images,dst_path,prefix,counetr =0, ext='png'):
+    c = counetr
+    for i in tqdm(range(len(images)), ncols=100):
+      image  = images[i]
+      dst_filename = os.path.join(dst_path,prefix+str(c)+'.'+ext)
+      c += 1
+      cv2.imwrite(dst_filename,image)
+    return c
+
+  @staticmethod
+  def mean_point(pnt1,pnt2):
+    return [int( (pnt2[0] + pnt1[0])  /2),int((pnt2[1] + pnt1[1]) /2)]
+
+  @staticmethod
+  def points_distance(pnt1,pnt2):
+     return ((pnt2[0] - pnt1[0]) ** 2 + (pnt2[1] - pnt1[1]) ** 2) ** 0.5
+
+  @staticmethod
+  def points_distance_x(pnt1,pnt2):
+     return abs(pnt2[0] - pnt1[0])
+
+  @staticmethod
+  def points_distance_y(pnt1,pnt2):
+     return abs(pnt2[1] - pnt1[1])
 
 
-       
-     
+  @staticmethod
+  def offset_point(pnt,offset):
+    return [(pnt[0]+offset[0]),(pnt[1]+offset[1])]
+
+  @staticmethod
+  def rect_points_dim(rect):
+    p1 = rect[0]
+    p2 = rect[1]
+    w = CvUtility.points_distance_x(p1,p2)
+    h = CvUtility.points_distance_y(p1, p2)
+
+    return [p1[0],p1[1],w,h]
+
+  @staticmethod
+  def rect_dim_points(rect):
+
+    return [int(rect[0]),int(rect[1]) ,int(rect[0]+rect[2]),int(rect[1]+rect[3])]
+
+  @staticmethod
+  def add_border(image,border = None,color = (255,255,255)):
+     if border:
+       return cv2.copyMakeBorder(image, border[0], border[1], border[2], border[3], cv2.BORDER_CONSTANT, value=color)
+     else: return image
+
+  @staticmethod
+  def remove_border(image,border):
+      region = CvUtility.getImageRect(image)
+      t,b,l,r = border
+      x, y, w, h = region
+      return image[y+t:y + h-b, x+l:x + w - r]
+  
+  @staticmethod
+  def array2Image(arr):
+    fit_image = np.squeeze(arr)
+    return np.transpose(fit_image, (1, 2, 0))
+
+  @staticmethod
+  def image_to_tensor(image, target_shape):
+    result = image.transpose((2, 0, 1))  # HWC->CHW
+    result = result.reshape(target_shape)
+    return result
+  
+  @staticmethod
+  def getPointsBoundingBox(points):
+    pnts = np.empty((0, 2), int)
+    for pnt in points: 
+        p = [np.array(pnt)]
+        pnts = np.append(pnts, p, axis=0)
+
+    x, y, w, h = cv2.boundingRect(pnts)
+
+    return [x, y,  w,  h]
+  
+  @staticmethod
+  def drawPoints(image,points,color=(0,255,0),size = 2):
+    for point in points:
+      cv2.circle(image,point,size,color,-1)
+
+
+
+
+  @staticmethod
+  def getNormAnchors(anchors):
+    bb = getAnchorsBoundingBox(anchors)
+    result = anchors
+    for pnt in result:
+      pnt[0] = bb[1]
+      pnt[1] = bb[0]
+    return result
+
+  @staticmethod
+  def filter_images_by_dim(src_path, min_width=-1,max_width=-1,min_height=-1,max_height=-1):
+    if min_width == -1:
+      min_w = 0
+    if max_width == -1:
+      max_w = sys.maxsize
+    if min_height == -1:
+      min_h = 0
+    if max_height == -1:
+      max_h = sys.maxsize
+
+    src_files = FileUtility.getFolderImageFiles(src_path)
+    dst_files = []
+    for src_file in src_files:
+      img = cv2.imread(src_file)
+      if img.shape[0] >= min_h and img.shape[0] <= max_h and img.shape[1] >=min_w and img.shape[1] <= max_w:
+        dst_files.append(src_file)
+
+    return dst_files
+
+  @staticmethod
+  def rotate_image(image,angle):
+
+      result = imutils.rotate_bound(image, angle)
+
+      return result
+
+  def rotate_image2(image, angle, center=None, scale=1.0):
+    (h, w) = image.shape[:2]
+
+    if center is None:
+      center = (w / 2, h / 2)
+
+    # Perform the rotation
+    M = cv2.getRotationMatrix2D(center, angle, scale)
+    rotated = cv2.warpAffine(image, M, (w, h))
+
+    return rotated
+
+  @staticmethod
+  def rotate_image_batch(src_path,dst_path,angle):
+    src_files = FileUtility.getFolderImageFiles(src_path)
+    dst_files = FileUtility.getDstFilenames2(src_files,src_path,dst_path)
+    for i in range(len(src_files)):
+      src_image = cv2.imread(src_files[i])
+      dst_image =  CvUtility.rotate_image(src_image,angle)
+      cv2.imwrite(dst_files[i],dst_image)
+
+  @staticmethod
+  def rotate_image_batchs(src_path, dst_path, angles):
+    src_files = FileUtility.getFolderImageFiles(src_path)
+    dst_files = FileUtility.getDstFilenames2(src_files, src_path, dst_path)
+    for i in range(len(src_files)):
+      src_image = cv2.imread(src_files[i])
+      for angle in angles:
+        dst_image = CvUtility.rotate_image(src_image, angle)
+        dst_filename  = FileUtility.changeFilenamePostfix(dst_files[i],"_"+str(angle))
+        cv2.imwrite(dst_filename, dst_image)
+
+  @staticmethod
+  def rotate_image_batch_(images_path,angle):
+    src_files = FileUtility.getFolderImageFiles(src_path)
+
+    for i in range(len(src_files)):
+      src_image = cv2.imread(src_files[i])
+      dst_image =  CvUtility.rotate_image2(src_image,angle)
+      cv2.imwrite(src_files[i], dst_image)
+
+  @staticmethod
+  def cvRect2Yolo(rect,size):
+     r = (float(rect[0]) / size[1], float(rect[1]) / size[0],
+          float(rect[2]) / size[1], float(rect[3]) / size[0])
+
+     return (r[0] + r[2] / 2, r[1] + r[3] / 2, r[2], r[3])
+
+  @staticmethod
+  def rectInside(sub_rect,main_rect):
+    return sub_rect[0] >= main_rect[0] and sub_rect[1] >= main_rect[1] and  sub_rect[2] <= main_rect[2] and  sub_rect[3] <= main_rect[3]
+
+  @staticmethod
+  def rect2CvRect(rct):
+    return (rct[0],rct[1],rct[2] - rct[0] +1,rct[3] - rct[1] +1)
+
+  @staticmethod
+  def cvrect2Rect(cv_rct):
+    return (cv_rct[0],cv_rct[1],cv_rct[0] + cv_rct[2] - 1,cv_rct[1] + cv_rct[3] - 1)
+
+  @staticmethod
+  def cvRectInside(sub_rect,main_rect):
+    sub_rect_r = CvUtility.cvrect2Rect(sub_rect)
+    main_rect_r = CvUtility.cvrect2Rect(main_rect)
+    return CvUtility.rectInside(sub_rect_r, main_rect_r)
+
+
+
+  @staticmethod
+  def yolorect2Rect(yolo_rct,back_size = None):
+    w2 = yolo_rct[2] / 2
+    h2 = yolo_rct[3] / 2
+    if back_size != None:
+      result = ( (yolo_rct[0] - w2) * back_size[0], (yolo_rct[1] - h2) * back_size[1],
+                 (yolo_rct[0] + w2) * back_size[0], (yolo_rct[1] + h2) * back_size[1])
+
+    else : result = (yolo_rct[0] - w2, yolo_rct[1] - h2, yolo_rct[0] + w2, yolo_rct[1] + h2)
+    return result
+  @staticmethod
+  def rect2Yolorect(rct,back_size):
+      r = (rct[0] / back_size[0],rct[1] / back_size[1],rct[2] / back_size[0],rct[3] / back_size[1])
+      w = r[2] - r[0]
+      h = r[3] - r[1]
+      return ( r[0] + w / 2,r[1]+ h / 2,w,h)
+
+
+  @staticmethod
+  def get_rect_size(rct):
+    return (rct[2] - rct[0] +1 ,rct[3] - rct[1] +1 )
+
+  @staticmethod
+  def crop_rect(rct,crop_region):
+
+
+    return ( rct[0] - crop_region[0], rct[1] - crop_region[1], rct[2] - crop_region[0], rct[3] - crop_region[1])
+
+
+  @staticmethod
+  def get_yolo_size(rct):
+    return (rct[2],rct[3])
+
+  @staticmethod
+  def crop_yolo_region(yolo_rct,yolo_crop_region,back_size):
+
+      size = CvUtility.get_yolo_size(yolo_crop_region)
+      rct = CvUtility.yolorect2Rect(yolo_rct,back_size)
+      crop_region = CvUtility.yolorect2Rect(yolo_crop_region,back_size)
+
+      result = CvUtility.crop_rect(rct,crop_region)
+      return CvUtility.rect2Yolorect(result,(size[0] * back_size[0],size[1] * back_size[1]))
+
+
+  @staticmethod
+  def yoloRectInside(sub_rect,main_rect):
+    sub_rect_r = CvUtility.yolorect2Rect(sub_rect)
+    main_rect_r = CvUtility.yolorect2Rect(main_rect)
+    return CvUtility.rectInside(sub_rect_r,main_rect_r)
+
+
+  
+
+
+
+    
+
+    
+  
+
+
+
+
+
+
+
+
+
 
 
 

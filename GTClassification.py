@@ -6,7 +6,7 @@ from .CvUtility import *
 class GTClassification:
 
     @staticmethod
-    def getFilesStrLabels_(src_path):
+    def getImagesStrLabels_(src_path):
         if FileUtility.checkRootFolder(src_path):
             print("There are not any classes in the folder.")
             return None, None
@@ -24,8 +24,28 @@ class GTClassification:
         return filenames, labels
 
     @staticmethod
-    def getFilesIntLabels_(images_path, org_classes):
-        filesname, str_labels = GTClassification.getFilesStrLabels_(images_path)
+    def getAnyFilesStrLabels_(src_path,exts= []):
+        if FileUtility.checkRootFolder(src_path):
+            print("There are not any classes in the folder.")
+            return None, None
+
+        filenames = []
+        labels = []
+        if len(exts) == 0:
+            return filenames,labels
+
+        sub_folders = FileUtility.getSubfolders(src_path)
+        for sub_folder in sub_folders:
+            cur_sub_folder = os.path.join(src_path, sub_folder)
+            cur_filenames = FileUtility.getFolderFiles(cur_sub_folder,exts)
+            filenames.extend(cur_filenames)
+            labels.extend([sub_folder] * len(cur_filenames))
+
+        return filenames, labels
+
+    @staticmethod
+    def getImagesIntLabels_(images_path, org_classes):
+        filesname, str_labels = GTClassification.getImagesStrLabels_(images_path)
         if filesname == None:
             return None, None
 
@@ -40,12 +60,33 @@ class GTClassification:
 
         return filesname, int_labels
 
-    def getFilesIntLabels(self):
-        return GTClassification.getFilesIntLabels_(self._join('images'), self._org_classes)
+    @staticmethod
+    def getAnyFilesIntLabels_(images_path, org_classes,exts = []):
+        filesname, str_labels = GTClassification.getAnyFilesStrLabels_(images_path,exts)
+        if filesname == None:
+            return None, None
+
+        str_classes = Utility.getUniqueValues(str_labels)
+        if not Utility.matchLists(org_classes, str_classes):
+            print('Destination and source classes are different.')
+            return None, None
+
+        int_labels = []
+        for label in str_labels:
+            int_labels.append(org_classes.index(label))
+
+        return filesname, int_labels
+
+    def getImagesIntLabels(self):
+        return GTClassification.getImage
+        sIntLabels_(self._join('images'), self._org_classes)
+
+    def getAnyFilesIntLabels(self):
+        return GTClassification.getAnyFilesIntLabels_(self._join('images'), self._org_classes)
 
     @staticmethod
-    def getSplitList_(images_path, org_classes, train_per=0.8):
-        files, labels = GTClassification.getFilesIntLabels_(images_path, org_classes)
+    def getSplitList_(images_path, org_classes,exts = [], train_per=0.8):
+        files, labels = GTClassification.getAnyFilesIntLabels_(images_path, org_classes,exts)
 
         indexs = MatUtility.getRandomIndexs(len(files))
 

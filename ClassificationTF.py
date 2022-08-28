@@ -9,7 +9,7 @@ import tensorflow as tf
 from time import time
 from  keras.models import load_model
 import numpy as np
-from keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array, array_to_img
+# from keras.preprocessing.image import   img_to_array, array_to_img
 from tqdm import tqdm
 from tensorflow.python.framework.convert_to_constants import convert_variables_to_constants_v2
 from .GTClassification import *

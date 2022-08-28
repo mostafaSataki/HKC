@@ -9,17 +9,65 @@ import math
 import subprocess
 from scipy.spatial import distance as dist
 from  .CvUtility import *
+import math
+from .PointUtility import *
 
 class RectUtility:
+  @staticmethod
+  def boundingRect(points):
+    if len(points) == 0:
+      return
+    p0 = points[0]
+    result = [p0[0],p0[1],p0[0],p0[1]]
+    for pnt in points:
+      if pnt[0] < result[0]:
+        result[0] = pnt[0]
+      if pnt[1] < result[1]:
+        result[1] = pnt[1]
+      if pnt[0] > result[2]:
+        result[2] = pnt[0]
+      if pnt[1] > result[3]:
+        result[3] = pnt[1]
+    return RectUtility.twoPointsToRect(result)
+
+
+
+
+  @staticmethod
+  def moveRect(rct,offset):
+    result = rct
+    result[0] += offset[0]
+    result[1] += offset[1]
+    return result
+
+  @staticmethod
+  def moveRects(rects,offset):
+    result = []
+    for rct in rects:
+      result.append(RectUtility.moveRect(rct,offset))
+    return result
 
   @staticmethod
   def rectTo2Points(rect):
     return [rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3]]
 
   @staticmethod
-  def twoPointsToRect(r2):
-    return [r2[0], r2[1], r2[2] - r2[0], r2[3] - r2[1]]
+  def rectTo2PointsList(rects):
+    result = []
+    for rct in rects:
+      result.append(RectUtility.rectTo2Points(rct))
+    return result
 
+  @staticmethod
+  def twoPointsToRect(r2):
+    return [r2[0], r2[1], abs(r2[2] - r2[0]) +1,abs( r2[3] - r2[1])+1]
+
+  @staticmethod
+  def twoPointsToRectList(rects):
+     result = []
+     for rct in rects:
+       result.append(RectUtility.twoPointsToRect(rct))
+     return result
   @staticmethod
   def center2Rect(center,size):
     return [int(center[0] - size[0] /2),int(center[1] - size[1] /2),int( size[0]) ,int( size[1]) ]
@@ -33,6 +81,9 @@ class RectUtility:
     x2p = shape[1] - r2[0]
 
     return RectUtility.twoPointsToRect([x1p,r2[1],x2p,r2[3]])
+
+
+
 
   @staticmethod
   def toYoloRect(rct,back_rect):
@@ -77,3 +128,68 @@ class RectUtility:
     for r in rects :
       result.append(RectUtility.cropRect(back_rect,r))
     return result
+
+
+  @staticmethod
+  def getRectPoints(rct):
+    result = []
+    result.append([rct[0],rct[1]])
+    result.append([rct[0]+rct[2], rct[1]])
+    result.append([rct[0]+rct[2], rct[1]+rct[3]])
+    result.append([rct[0], rct[1]+rct[3]])
+    return result
+
+  @staticmethod
+  def getRectCenter(region):
+    return (int(region[0] + region[2]/2) ,int(region[1] + region[3]/2))
+
+  @staticmethod
+  def rotateRect(rct,center,angle,around_center = True):
+    points = RectUtility.getRectPoints(rct)
+    if around_center :
+      cntr = RectUtility.getRectCenter(rct)
+    else: cntr = center
+    result = PointUtility.rotatePoints(points,cntr,angle)
+    return RectUtility.boundingRect(result)
+
+
+
+  @staticmethod
+  def rotateRects(rects,center,angle,around_center = True, background = None):
+    result = []
+
+    cntr = center
+    if background != None:
+      cntr = RectUtility.getRectCenter(background)
+      background_r = RectUtility.rotateRect(background,cntr,angle,False)
+
+    for rct in rects:
+      result.append(RectUtility.rotateRect(rct,cntr,angle,around_center))
+
+    if background != None:
+        offset = [-background_r[0],-background_r[1]]
+        result =  RectUtility.moveRects(result,offset)
+
+    return result
+
+  @staticmethod
+  def getImageRect(image):
+    return [0,0,image.shape[1],image.shape[0]]
+
+
+  @staticmethod
+  def drawRects(image,regions,color = (0,255,0),thicknes = 2):
+    result = image.copy()
+    for region in regions:
+       r = RectUtility.rectTo2Points(region)
+       cv2.rectangle(result,(r[0],r[1]),(r[2],r[3]),color,thicknes)
+    return result
+  
+  @staticmethod
+  def is_empty(region):
+    if region == None :
+      return True
+    else:
+          return region[2] * region[3] == 0
+
+

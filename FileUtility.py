@@ -24,6 +24,8 @@ from  enum import  Enum
 import csv
 import os
 import platform
+from pathlib import Path
+from .Utility import *
 
 class MediaType(Enum):
   folder = 1
@@ -36,9 +38,16 @@ class FileUtility:
     return ['bmp', 'jpg',  'tif', 'tiff','png']
 
   @staticmethod
-  def getVideoExtensions():
-    return ['mp4', 'avi',  'mov']
+  def getAudioExtensions():
+    return ['wav', 'mp3',  'wma', 'aac','ogg']
 
+  @staticmethod
+  def getVideoExtensions():
+    return ['mp4', 'avi',  'mov','mkv']
+
+  @staticmethod
+  def getModuleExtensions():
+    return ['exe', 'dll',  'so']
 
   @staticmethod
   def removeFileExt(src_filename):
@@ -49,12 +58,72 @@ class FileUtility:
      p,_,_ =  FileUtility.getFileTokens(src_filename)
      return p
 
+  @staticmethod
+  def getFileFolder(filename):
+      tokens = FileUtility.getFileTokens(filename)
+      f = os.path.basename(os.path.normpath(tokens[0]))
+      return f
+
+
+  @staticmethod
+  def getFilesFolder(filesnames):
+      result = []
+      for filename in filesnames:
+        result.append(FileUtility.getFileFolder(filename))
+      return result
+
+  @staticmethod
+  def getFileLabel(filename):
+    return int(FileUtility.getFileFolder(filename))
+
+  @staticmethod
+  def getFolderLabel(folder):
+    return Path(folder).stem
+
+  @staticmethod
+  def getFoldersLabel(folders):
+    result = []
+    for folder in folders:
+      result.append(FileUtility.getFolderLabel(folder))
+    return result
+
+  @staticmethod
+  def getFilesLabel(filesnames):
+    result = []
+    for filename in filesnames:
+      result.append(FileUtility.getFileLabel(filename))
+    return result
+
+  @staticmethod
+  def getFilesUniqueLabels(filesnames):
+    labels = FileUtility.getFilesLabel(filesnames)
+    labels = list(set(labels))
+    result = []
+    for lable in labels:
+      result.append(str(lable))
+    return result
+
+
+
+  @staticmethod
+  def checkIsAudio(filename):
+    ext = FileUtility.getFileExt(filename).lower()
+    return  ext in FileUtility.getAudioExtensions()
 
   @staticmethod
   def checkIsImage(filename):
     ext = FileUtility.getFileExt(filename).lower()
     return  ext in FileUtility.getImageExtensions()
 
+  @staticmethod
+  def checkExt(filename,Exts):
+    ext = FileUtility.getFileExt(filename).lower()
+    return  ext in Exts
+
+  @staticmethod
+  def checkIsModule(filename):
+    ext = FileUtility.getFileExt(filename).lower()
+    return  ext in FileUtility.getModuleExtensions()
 
 
   @staticmethod
@@ -65,6 +134,9 @@ class FileUtility:
 
   def getTifExtensions():
     return ['tif','tiff']
+
+  def getTexExtensions():
+    return ['txt']
 
   @staticmethod
   def checkTifImage(filename):
@@ -83,26 +155,26 @@ class FileUtility:
     result = re.sub('[.]', '', result)
     return result
 
-  @staticmethod
-  def getFolderFiles(path, ext = None, has_path = True, has_ext = True):
-    result = []
-    for (dirpath, dirnames, filenames) in os.walk(path):
-      for filename in filenames:
-          fname = FileUtility.getFilenameWithoutExt(filename)
-          cur_ext = FileUtility.getFileExt(filename)
-          if ext != None and cur_ext != ext:
-            continue
-
-          if has_path :
-            name = os.path.join(dirpath,fname)
-          else :name = fname
-
-          if has_ext:
-            name = name+'.'+cur_ext
-          result.append(name)
-          # result.append(os.path.join(dirpath,filename))
-
-    return  result
+  # @staticmethod
+  # def getFolderFiles(path, ext = None, has_path = True, has_ext = True):
+  #   result = []
+  #   for (dirpath, dirnames, filenames) in os.walk(path):
+  #     for filename in filenames:
+  #         fname = FileUtility.getFilenameWithoutExt(filename)
+  #         cur_ext = FileUtility.getFileExt(filename)
+  #         if ext != None and cur_ext != ext:
+  #           continue
+  #
+  #         if has_path :
+  #           name = os.path.join(dirpath,fname)
+  #         else :name = fname
+  #
+  #         if has_ext:
+  #           name = name+'.'+cur_ext
+  #         result.append(name)
+  #         # result.append(os.path.join(dirpath,filename))
+  #
+  #   return  result
 
   @staticmethod
   def getFolderFilesname( path):
@@ -117,6 +189,66 @@ class FileUtility:
       for filename in filenames:
         if FileUtility.checkIsImage(filename):
           result.append(os.path.join(dirpath, filename))
+
+    return result
+
+  @staticmethod
+  def getFolderFiles(path,Exts):
+    result = []
+    for (dirpath, dirnames, filenames) in os.walk(path):
+      for filename in filenames:
+        if FileUtility.checkExt(filename,Exts):
+          result.append(os.path.join(dirpath, filename))
+
+    return result
+
+  @staticmethod
+  def getFolderAllFiles(path):
+    result = []
+    for (dirpath, dirnames, filenames) in os.walk(path):
+      for filename in filenames:
+          result.append(os.path.join(dirpath, filename))
+
+    return result
+
+
+  @staticmethod
+  def getFoldersImageFiles(paths,Exts):
+    result = []
+    for path in paths:
+      if len(result) == 0:
+        result = FileUtility.getFolderFiles(path,Exts)
+      else: result += FileUtility.getFolderFiles(path,Exts)
+
+    return result
+
+  @staticmethod
+  def getFoldersFiles(paths,ext):
+    result = []
+    for path in paths:
+      if len(result) == 0:
+        result = FileUtility.getFolderImageFiles(path)
+      else: result += FileUtility.getFolderImageFiles(path)
+
+    return result
+
+  @staticmethod
+  def getFolderAudioFiles(path):
+    result = []
+    for (dirpath, dirnames, filenames) in os.walk(path):
+      for filename in filenames:
+        if FileUtility.checkIsAudio(filename):
+          result.append(os.path.join(dirpath, filename))
+
+    return result
+
+  @staticmethod
+  def getFolderModuleFiles(path):
+    result = []
+    filenames = FileUtility.getFolderFiles(path)
+    for filename in filenames:
+        if FileUtility.checkIsModule(filename):
+          result.append(os.path.join(path, filename))
 
     return result
 
@@ -187,19 +319,42 @@ class FileUtility:
         os.remove(cur_filename)
 
   @staticmethod
+  def joins(filename,file_path,sub_folders):
+    result = []
+    for sub_folder in sub_folders:
+      result.append(os.path.join(os.path.join(file_path,sub_folder),filename))
+    return result
+
+  @staticmethod
+  def exist_count(filenames):
+    count = 0
+    files_list = []
+    for filename in filenames:
+      if os.path.exists(filename):
+        count = count + 1
+        files_list.append(filename)
+
+    return  files_list, count
+
+  @staticmethod
   def copyFiles(src_path, dst_path, pattern_path,cut_flag=False,pair_extension = None):
     pattern_files = glob.glob(os.path.join(pattern_path, "*"))
-
+    sub_folders = FileUtility.getSubfolders(src_path)
     # for pattern_file in pattern_files:
     for i in tqdm( range(len(pattern_files)),ncols=100):
       pattern_file = pattern_files[i]
-      file_name = os.path.split(pattern_file)[-1]
-      src_filename = os.path.join(src_path, file_name)
-      dst_filename = os.path.join(dst_path, file_name)
-      if os.path.exists(src_filename):
-        shutil.copyfile(src_filename, dst_filename)
-        if cut_flag:
-          os.remove(src_filename)
+      pat_fname = FileUtility.getFilename(pattern_file)
+
+      if len(sub_folders) != 0:
+        cur_src_filenames = FileUtility.joins(pat_fname,src_path,sub_folders)
+        files_list,files_count = FileUtility.exist_count(cur_src_filenames)
+        if files_count == 1:
+          src_filename = files_list[0]
+          dst_filename = os.path.join(dst_path,pat_fname)
+          FileUtility.copyFile(src_filename,dst_filename)
+          if cut_flag:
+            os.remove(src_filename)
+
 
         if pair_extension :
            src_pair_filename = FileUtility.changeFileExt(src_filename,pair_extension)
@@ -210,12 +365,45 @@ class FileUtility:
              if cut_flag:
                os.remove(src_pair_filename)
 
+  @staticmethod
+  def copy_images_percent(src_path,dst_path,per = 1.0,random_copy =False):
+      src_images = FileUtility.getFolderImageFiles(src_path)
+      dst_images = FileUtility.getDstFilenames2(src_images,src_path,dst_path)
+      total_count = len(src_images)
+      count = int(per * total_count)
+      indexs = Utility.getRandomList(len(src_images))[:count]
+      s_images = Utility.getListByIndexs(src_images,indexs)
+      d_images = Utility.getListByIndexs(dst_images,indexs)
+      FileUtility.copyFilesByName(s_images,d_images)
+
+
+
+  @staticmethod
+  def copyFiles2(src_path, dst_path, pattern_path, cut_flag=False, pair_extension=None):
+    pattern_files = glob.glob(os.path.join(pattern_path, "*"))
+
+    src_files = FileUtility.getDstFilenames2(pattern_files,pattern_path,src_path)
+    dst_files = FileUtility.getDstFilenames2(pattern_files, pattern_path, dst_path)
+
+    for i in tqdm(range(len(pattern_files)), ncols=100):
+      if os.path.exists(src_files[i]):
+         FileUtility.copyFile(src_files[i], dst_files[i])
+      if cut_flag:
+        if os.path.exists(src_files[i]):
+          os.remove(src_files[i])
+
+
 
   @staticmethod
   def copyFilesByName(src_filenames,dst_filenames):
     for i in tqdm(range(len(src_filenames)), ncols=100):
       if src_filenames[i] != dst_filenames[i]:
         shutil.copyfile(src_filenames[i], dst_filenames[i])
+
+  @staticmethod
+  def copyFiles2DstPath(src_filenames,src_path, dst_path):
+    dst_files = FileUtility.getDstFilenames2(src_filenames,src_path,dst_path)
+    FileUtility.copyFilesByName(src_filenames,dst_files)
 
   @staticmethod
   def copyFilesByLabels(src_files, dst_path, labels):
@@ -298,7 +486,7 @@ class FileUtility:
         return os.path.split(file_name)[0]
 
   @staticmethod
-  def renameFiles(path, prefix , start_counter= 0,replace_folder_name = False):
+  def renameFiles(path, prefix , start_counter= 0, remain_filename =False, replace_folder_name = False):
     if replace_folder_name :
       sub_folders = FileUtility.getSubfolders(path)
       for sub_folder in sub_folders:
@@ -307,7 +495,9 @@ class FileUtility:
         image_files = FileUtility.getFolderImageFiles(full_path)
         for file in image_files:
           tokens = FileUtility.getFileTokens(file)
-          dst_fille = os.path.join( tokens[0], sub_folder+'_' + str(counter)+tokens[2])
+          if remain_filename:
+            dst_fille = os.path.join(tokens[0],tokens[1]+'_'+ sub_folder + '_' + str(counter) + tokens[2])
+          else : dst_fille = os.path.join( tokens[0], tokens[1]+'_'+ sub_folder+'_' + str(counter)+tokens[2])
           os.rename(file, dst_fille)
           counter += 1
 
@@ -317,7 +507,9 @@ class FileUtility:
         counter = start_counter
         for file in image_files:
           tokens = FileUtility.getFileTokens(file)
-          dst_fille = os.path.join( tokens[0], prefix + str(counter)+tokens[2])
+          if remain_filename:
+            dst_fille = os.path.join(tokens[0],tokens[1]+'_'+ prefix +'_'+ str(counter)+'_' + tokens[2])
+          else : dst_fille = os.path.join( tokens[0],tokens[1]+'_'+ prefix +'_'+ str(counter)+'_'+tokens[2])
           os.rename(file, dst_fille)
           counter += 1
 
@@ -480,6 +672,17 @@ class FileUtility:
     return result
 
   @staticmethod
+  def createSubfoldersByRange(path,low,up):
+    return FileUtility.createSubfolders(path,Utility.range2StrList(low,up))
+    
+
+  @staticmethod
+  def copy_subfolders(src_path,dst_path):
+      sub_folders = FileUtility.getSubfolders(src_path)
+      FileUtility.createSubfolders(dst_path,sub_folders)
+
+
+  @staticmethod
   def copyFileByNewExtension(src_filename,dst_filename,ext):
     new_src_filename = FileUtility.getChangeFileExt(src_filename,ext)
     new_dst_filename = FileUtility.getChangeFileExt(dst_filename, ext)
@@ -507,6 +710,9 @@ class FileUtility:
        return src_path[0:-len(FileUtility.upFolderName(src_path))-1]
     elif os.path.isfile(src_path):
        return FileUtility.removeFilename(src_path)
+  @staticmethod
+  def get_file_upfolder(src_filename):
+    return Path(src_filename).parts[-2]
 
   @staticmethod
   def saveList2File(list,filename):
@@ -571,7 +777,25 @@ class FileUtility:
   def changeFileName(filename,new_name):
     tokens = FileUtility.getFileTokens(filename)
     return os.path.join(tokens[0], new_name + tokens[2])
-  
+
+  @staticmethod
+  def changeFileNameEx(filename,new_name = "",pre_fix = "",post_fix=""):
+    tokens = FileUtility.getFileTokens(filename)
+
+    dst_name = ""
+    if (pre_fix != ""):
+      dst_name = pre_fix
+
+    if (new_name != ""):
+      dst_name = dst_name + new_name
+    else : dst_name = dst_name + tokens[1]
+
+    if (post_fix != ""):
+      dst_name = dst_name+ post_fix
+
+    return  os.path.join(tokens[0],dst_name+tokens[2])
+
+
   @staticmethod
   def changeFileExt(fileame,new_ext):
     tokens = FileUtility.getFileTokens(fileame)
@@ -598,14 +822,20 @@ class FileUtility:
     return result,counter
 
   @staticmethod
+  def changeFilenamePostfix(filename,postfix):
+    result = []
+
+    tokens = FileUtility.getFileTokens(filename)
+    dst_filename = os.path.join( tokens[0] , tokens[1]+postfix+tokens[2])
+
+    return dst_filename
+
+  @staticmethod
   def changeFilesnamePostfix(files,postfix):
     result = []
 
     for file in files:
-      tokens = FileUtility.getFileTokens(file)
-      dst_filename = os.path.join( tokens[0] , tokens[1]+postfix+tokens[2])
-      result.append(dst_filename)
-
+      result.append(FileUtility.changeFilenamePostfix(file,postfix))
 
     return result
 
@@ -651,7 +881,8 @@ class FileUtility:
   @staticmethod
   def getFilenameWithoutExt(filename):
     tokens = FileUtility.getFileTokens(filename)
-    return tokens[1]
+    return tokens[1].split('.')[0]
+
 
   @staticmethod
   def getFilename(filename):
@@ -683,7 +914,15 @@ class FileUtility:
           result = image_filename
           break
      return result
-  
+
+  @staticmethod
+  def getImagePairs(filenames):
+    result = []
+    for file in filenames:
+      result.append(FileUtility.getImagePair(file))
+    return result
+
+
   @staticmethod
   def copyFile(src_filename,dst_filename):
     shutil.copyfile(src_filename, dst_filename)
@@ -814,6 +1053,14 @@ class FileUtility:
 
       f.close()
 
+  @staticmethod
+  def read_text_list(filename):
+    result = []
+    with open(filename,'r') as f:
+      for line in f.readlines():
+        result.append(line.strip())
+      f.close()
+    return result
 
 
   @staticmethod
@@ -854,6 +1101,306 @@ class FileUtility:
       counter += 1
 
     return filenames,labels
+
+
+  @staticmethod
+  def compareFolderFiles(src_path1,src_path2,copy_unpair = False,dst_path = None):
+    files1 = FileUtility.getFolderAllFiles(src_path1)
+    files2 = FileUtility.getFolderAllFiles(src_path2)
+
+    pair_files = []
+    unpair_files = []
+
+    for i,filename1 in enumerate(files1):
+      f_name1 = FileUtility.getFilename(filename1)
+      filename2 = FileUtility.getDstFilename2(filename1,src_path1,src_path2)
+
+      if os.path.exists(filename2):
+        pair_files.append(filename1)
+      else :unpair_files.append(filename1)
+
+    if copy_unpair :
+       dst_files = FileUtility.getDstFilenames2(unpair_files,src_path1,dst_path)
+       FileUtility.copyFilesByName(unpair_files,dst_files)
+
+    equal = len(unpair_files) == 0
+    return  equal, pair_files,unpair_files
+
+  @staticmethod
+  def copy_file_to_folder(src_filename,dst_path,postfix = '',create_dst_branch = False):
+    tokens = FileUtility.getFileTokens(src_filename)
+    f_name = tokens[1]+postfix+tokens[2]
+
+    if create_dst_branch:
+      dst_branch = os.path.join(dst_path, tokens[1])
+      FileUtility.createClearFolder(dst_branch)
+      dst_filename = os.path.join(dst_branch, f_name)
+
+    else:
+      dst_filename = os.path.join(dst_path,f_name)
+
+    FileUtility.copyFile(src_filename, dst_filename)
+
+    if create_dst_branch:
+      return dst_branch
+    else: return None
+
+  @staticmethod
+  def cvRect2Openvion(cv_rect):
+    pass
+  @staticmethod
+  def openvinoRect2Cv(ov_rect):
+    pass
+
+  @staticmethod
+  def remove_blank_subfolder(src_path):
+
+    sub_folders = FileUtility.getSubfolders(src_path)
+    for sub_folder in sub_folders:
+      cur_path =os.path.join(src_path, sub_folder)
+      files = FileUtility.getFolderImageFiles(cur_path)
+      if len(files) == 0:
+        os.removedirs(cur_path)
+
+  @staticmethod
+  def delete_files(files_name):
+    for file_name in files_name:
+      if os.path.exists(file_name):
+        os.remove(file_name)
+
+  @staticmethod
+  def delete_subfolder_extra_files(src_path,max_count):
+    sub_folders = FileUtility.getSubfolders(images_path)
+    l = len(sub_folders)
+    for i in tqdm(range(l), ncols=100):
+      sub_folder = sub_folders[i]
+      cur_path = os.path.join(images_path, sub_folder)
+      files = FileUtility.getFolderImageFiles(cur_path)
+      len1 = len(files)
+      if len1 > count:
+        for i in range(count, len1):
+          os.remove(files[i])
+
+  @staticmethod
+  def remove_token_from_filename(src_path, token_list_id,token_count = -1,sep='_'):
+
+    files = FileUtility.getFolderImageFiles(src_path)
+    for file in files:
+      tokens = FileUtility.getFileTokens(file)
+      f_tokens = tokens[1].split(sep)
+      if token_count == -1 or( token_count !=-1 and len(f_tokens) == token_count):
+        fname = ''
+        for i, f_token in enumerate(f_tokens):
+           if not( i in token_list_id):
+             if fname != '':
+               fname += sep
+             fname += tokens[i]
+
+
+        fname_ext = fname + tokens[2]
+        dst_filename = os.path.join(tokens[0],fname_ext)
+        if os.path.exists(dst_filename):
+          for i in range(100):
+            fname_ext = fname + sep + str(i + 1) + tokens[2]
+            dst_filename = os.path.join(tokens[0],fname_ext)
+            if not os.path.exists(dst_filename):
+              break
+        os.rename(file, dst_filename)
+
+  @staticmethod
+  def getFolderFilesCount(src_path):
+    _, _, files = next(os.walk(src_path))
+    return len(files)
+
+  @staticmethod
+  def get_folder_images_count(src_path):
+    _, _, files = next(os.walk(src_path))
+    images = []
+    for filename in files:
+      if FileUtility.checkIsImage(filename):
+        images.append(filename)
+    return len(images)
+
+  @staticmethod
+  def subfolders_exist(src_path,sub_folders):
+    result = True
+    for sub_folder in sub_folders:
+      cur_folder = os.path.join(src_path,sub_folder)
+      if not os.path.exists(cur_folder):
+        result = False
+        break
+    return result
+
+  @staticmethod
+  def copy_branch_percent(src_path,dst_path,per = 1.0,random_copy = False):
+    FileUtility.createClearFolder(dst_path)
+    sub_folders = FileUtility.getSubfolders(src_path)
+    for sub_folder in sub_folders:
+      cur_src_folder = os.path.join(src_path,sub_folder )
+      files_count = FileUtility.getFolderImagesCount(cur_src_folder)
+      if files_count == 0:
+        cur_dst_folder = os.path.join(dst_path,sub_folder)
+        os.makedirs(cur_dst_folder)
+        FileUtility.copy_branch_percent(cur_src_folder,cur_dst_folder,per,random_copy)
+      else:
+        cur_dst_folder = os.path.join(dst_path, sub_folder)
+        FileUtility.copy_images_percent(cur_src_folder,cur_dst_folder,per,random_copy)
+
+
+  @staticmethod
+  def get_folder_imagefiles_group(src_path,branch = None):
+    result = []
+    sub_folders = FileUtility.getSubfolders(src_path)
+    if branch != None and branch in sub_folders:
+      cur_src_folder = os.path.join(src_path, branch)
+      files = FileUtility.getFolderImageFiles(cur_src_folder)
+      result.append(files)
+    else:
+      for sub_folder in sub_folders:
+        cur_src_folder = os.path.join(src_path, sub_folder)
+        files_count = FileUtility.get_folder_images_count(cur_src_folder)
+        if files_count != 0:
+          files = FileUtility.getFolderImageFiles(cur_src_folder)
+          result.append(files)
+
+    return result
+
+  @staticmethod
+  def get_folder_imagefiles_per(src_path,branch = 'train',train_per= 0.7):
+    result = []
+    if FileUtility.subfolders_exist(src_path,['train','test']):
+       result = FileUtility.get_folder_imagefiles_group(src_path,branch)[0]
+    else :
+      files_list = FileUtility.get_folder_imagefiles_group(src_path)
+      if len(files_list) == 0:
+        files_list.append(FileUtility.getFolderImageFiles(src_path))
+      if branch == 'train':
+        for files in files_list:
+          count = int(len(files) * train_per)
+          result.extend(files[:count])
+      elif branch == 'test':
+        for files in files_list:
+          count = int(len(files) * train_per)
+          result.extend(files[count:])
+
+    return result
+
+  @staticmethod
+  def duplicate_filenames(src_path,dst_path,count):
+    src_files = FileUtility.getFolderImageFiles(src_path)
+    dst_files = FileUtility.getDstFilenames2(src_files,src_path,dst_path)
+    result = []
+
+    for i,src_file in enumerate(src_files):
+      dst_file = dst_files[i]
+      res = []
+      for j in range(count):
+           res.append( FileUtility.changeFilenamePostfix(dst_file, '_'+str(j)))
+      result.append(res)
+
+    return result
+
+
+  @staticmethod
+  def duplicate_images(src_path,dst_path,count):
+    src_files = FileUtility.getFolderImageFiles(src_path)
+    result = FileUtility.duplicate_filenames(src_path,dst_path,count)
+    for i in tqdm(range(len(result)), ncols=100):
+      res = result[i]
+      src_file = src_files[i]
+      for dst_filename in res:
+         FileUtility.copyFile(src_file,dst_filename)
+
+  @staticmethod
+  def augment_filenames(filenames,aug_count= 1,shuffle = False):
+    result = []
+    for filename in filenames:
+      result.append(filename)
+      for i in range(aug_count):
+         result.append(filename)
+    random.shuffle(result)
+    return result
+
+  @staticmethod
+  def replace_in_file(filename,find_str,replace_str):
+    with open(filename) as file:
+      s = file.read()
+
+    s = s.replace(find_str, replace_str)
+    with open(filepath, "w") as file:
+      file.write(s)
+
+  @staticmethod
+  def replace_in_folder(folder,find_str,replace_str,exts):
+    all_files = FileUtility.getFolderFiles(folder,exts)
+    for i in tqdm(range(len(all_files)), ncols=100):
+      FileUtility.replace_in_file(all_files[i],find_str,replace_str)
+
+  @staticmethod
+  def exists_nonzero(filename):
+    return os.path.exists(filename) and os.path.getsize(filename) > 0
+
+  @staticmethod
+  def exists_nonzeros(filenames):
+    result = True
+    for filename in filenames:
+      if not FileUtility.exists_nonzero(filename):
+        result = False
+        break
+    return result
+
+  @staticmethod
+  def get_slash_path(path : str):
+    result = path
+    result = result.replace("\\\\", '/')
+    result = result.replace('\\','/')
+    return result
+
+  @staticmethod
+  def pop_by_filename(input_files,filename):
+    files = []
+    target_files = []
+    for input_file in input_files:
+      fname = FileUtility.getFilename(input_file)
+      if fname == filename:
+        target_files.append(input_file)
+      else : files.append(input_file)
+
+    return files,target_files
+
+  @staticmethod
+  def get_next_path(dst_path,branch_name):
+    i = 0
+    cur_path = os.path.join(dst_path,branch_name+str(i))
+    while os.path.exists(cur_path):
+      i +=1
+      cur_path = os.path.join(dst_path, branch_name + str(i))
+
+    return cur_path
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
 
 
 

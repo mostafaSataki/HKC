@@ -9,13 +9,68 @@ from shutil import copyfile
 
 
 class YOLO(GTBase):
-    def __init__(self,defaul_size = ()):
+    def __init__(self,labels = None,defaul_size = ()):
         super(YOLO, self).__init__()
         self.data_ = GtYoloData()
-        self.labels_ = Labels()
+        self.labels_ = Labels(labels)
         self.default_size_ = defaul_size
 
+    def labels(self):
+        return self.labels_
+
+    def defaultSize(self):
+        return self.default_size_
+
+    def setLabels(self,value):
+        self.labels_ = value
+
+    def setDefaultSize(self,value):
+        self.default_size_ = value
+
+    def assign(self,yolo):
+        self.labels_ = yolo.labels()
+        self.default_size_ = yolo.defaultSize()
+
+    def clone(self):
+        res = YOLO()
+        res.labels_ = self.labels_
+        res.default_size_ = self.default_size_
+        res.data_ = self.data_.clone()
+        return res
+
+
+    def filter_by_region(self, yolo_region):
+
+        i = 0
+        width,height,_ = self.data_.size_
+        back_size = (width,height)
+
+
+        while( i  < len(self.data_.objects_)):
+            cur_item = self.data_.objects_[i]
+
+            if  CvUtility.yoloRectInside(cur_item.region_.region_,yolo_region):
+                cur_item.region_.region_ = CvUtility.crop_yolo_region(cur_item.region_.region_, yolo_region, back_size)
+                i += 1
+            else:
+                self.data_.objects_.pop(i)
+
+
+
+
+
+
+
+
+        # for obj in self.data_.objects_:
+
+
+
+
+
+
     def load(self, filename):
+
         self.data_.readFromFile(filename,self.default_size_)
 
     def save(self, filename=None):
@@ -33,7 +88,7 @@ class YOLO(GTBase):
     def addByIndex(self,region,index):
         self.data_.addCvRect(region,index)
 
-    def addByLable(self,region,label):
+    def addByLabel(self,region,label):
         self.labels_.add(label)
         index = self.labels_.getIndex(label)
         self.addByIndex(region,index)

@@ -20,3 +20,9 @@ class YoloRegion(RegionBase):
     def str(self):
         return ' '.join([str(v) for v in self.region_])
 
+    def clone(self):
+        result = YoloRegion(self.image_size_)
+        result.region_ = self.region_
+        result.image_size_ = self.image_size_
+        return result
+

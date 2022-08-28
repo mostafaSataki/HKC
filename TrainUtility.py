@@ -13,7 +13,7 @@ import os
 import glob
 import pandas as pd
 import xml.etree.ElementTree as ET
-
+from keras.models import load_model
 
 
 import os
@@ -22,9 +22,13 @@ import pandas as pd
 import tensorflow as tf
 
 from PIL import Image
-from object_detection.utils import dataset_util
+# from object_detection.utils import dataset_util
 from collections import namedtuple, OrderedDict
 from  keras import  backend as K
+from .CryptoUtility import *
+import h5py
+
+
 
 class TrainUtility:
 
@@ -334,6 +338,22 @@ class TrainUtility:
   @staticmethod
   def checkpointToFreeze(checkpoint_filename1, path):
     pass
+
+  @staticmethod
+  def load_model(filename,key):
+      with open(filename, 'rb') as fh:
+          io_bytes = io.BytesIO(fh.read())
+
+          c = AESCipher(key)
+          buffer = c.decrypt_data(io_bytes.read())
+          io_bytes.flush()
+          io_bytes.seek(0)
+          io_bytes.write(buffer)
+          # io_bytes2 = io.BytesIO(buffer)
+      with h5py.File(io_bytes, 'r') as h5_file:
+          model = load_model(h5_file)
+      return model
+
 
     # model = load_model(checkpoint_filename1)
     #
