@@ -1129,11 +1129,43 @@ class CvUtility:
     main_rect_r = CvUtility.yolorect2Rect(main_rect)
     return CvUtility.rectInside(sub_rect_r,main_rect_r)
 
+  @staticmethod
+  def break_image(image, grid_cols, grid_rows, conflict_cols=0.0, conflict_rows=0.0):
+    height, width, _ = image.shape
+    cell_width = int(width / grid_cols)
+    cell_height = int(height / grid_rows)
 
-  
+    offset_x = int(cell_width * conflict_cols / 2)
+    offset_y = int(cell_height * conflict_rows / 2)
 
+    result = []
 
+    for i in range(grid_rows):
+      pos_y = i * cell_height
+      for j in range(grid_cols):
+        pos_x = j * cell_width
 
+        x1 = pos_x - offset_x
+        if x1 < 0:
+          x1 = 0
+        x2 = pos_x + cell_width + offset_x
+        if x2 >= width - 1:
+          x2 = width - 1
+
+        y1 = pos_y - offset_y
+        if y1 < 0:
+          y1 = 0
+        y2 = pos_y + cell_height + offset_y
+        if y2 >= height - 1:
+          y2 = height - 1
+
+        cur_patch = image[y1:y2, x1:x2]
+        r = (x1, y1, x2, y2)
+        result.append([cur_patch, CvUtility.rect2Yolorect(r, (width, height))])
+
+    return result
+
+ 
     
 
     
