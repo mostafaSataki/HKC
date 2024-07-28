@@ -11,6 +11,7 @@ import  cv2
 from .Utility import *
 from .DetectionTF import DetectionTF
 
+
 class GTFormat(enum.Enum):
     YOLO = 1
     VOC = 2
@@ -168,10 +169,12 @@ class GTDetection:
 
         dst_yolo = YOLO(_labels)
 
-        for i, src_image_filename in enumerate(src_image_filesname):
+        for i in tqdm(range(len(src_image_filesname)), ncols=100):
+        # for i, src_image_filename in enumerate(src_image_filesname):
+            src_image_filename = src_image_filesname[i]
             src_gt_filename = FileUtility.changeFileExt(src_image_filename, 'xml')
 
-            dst_image_filename = FileUtility.getDstFilename2(src_image_filename, src_path, dst_path)
+            dst_image_filename = FileUtility.getDstFilename2(src_image_filename,dst_path, src_path )
 
             FileUtility.copyFile(src_image_filename, dst_image_filename)
             src_voc.load(src_gt_filename)
@@ -858,8 +861,9 @@ class GTDetection:
             GTDetection.GT2Csv(cur_folder, os.path.join(dst_path, sub_folder + ".csv"))
 
     @staticmethod
-    def copySplitGT2(src_media, dst_path, train_per=0.8, copy_to_root=False, select_type=IndexType.random,
+    def copySplitGT2(src_media, dst_path, valid_per=0.2,test_per = 0.2, copy_to_root=False, select_type=IndexType.random,
                      clear_dst=False, branchs=['train', 'eval']):
+        train_per = 1 - (valid_per+test_per)
         media = src_media
         media_type, ext = FileUtility.getMediaInfo(src_media)
         if media_type == MediaType.file and ext == 'zip':
@@ -893,64 +897,86 @@ class GTDetection:
                                                                                          test_indexs)
 
                 if copy_to_root:
-                    dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, src_cur_branch,
-                                                                             dst_path_train,
+                    dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames,dst_path_train,
+                                                                             src_cur_branch,
+
                                                                              copy_to_root)
-                    dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, src_cur_branch,
-                                                                          dst_path_train,
+                    dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, dst_path_train,
+                                                                          src_cur_branch,
                                                                           copy_to_root)
 
-                    dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, src_cur_branch,
-                                                                            dst_path_test,
+                    dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, dst_path_test,
+                                                                            src_cur_branch,
                                                                             copy_to_root)
-                    dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, src_cur_branch,
-                                                                         dst_path_test,
+                    dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, dst_path_test,
+                                                                         src_cur_branch,
                                                                          copy_to_root)
 
 
                 else:
-                    dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, src_cur_branch,
-                                                                             dst_cur_branch_train, copy_to_root)
+                    dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames,
+                                                                             dst_cur_branch_train, src_cur_branch,copy_to_root)
                     dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, src_cur_branch,
                                                                           dst_cur_branch_train,
                                                                           copy_to_root)
 
-                    dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, src_cur_branch,
-                                                                            dst_cur_branch_test, copy_to_root)
-                    dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, src_cur_branch,
-                                                                         dst_cur_branch_test,
+                    dst_valid_image_filenames = FileUtility.getDstFilenames2(src_valid_image_filenames,
+                                                                             dst_cur_branch_valid,src_cur_branch, copy_to_root)
+                    dst_valid_gt_filenames = FileUtility.getDstFilenames2(src_valid_gt_filenames,
+                                                                          dst_cur_branch_valid,src_cur_branch,
+                                                                          copy_to_root)
+
+                    dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames,
+                                                                            dst_cur_branch_test, src_cur_branch,copy_to_root)
+                    dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames,
+                                                                         dst_cur_branch_test, src_cur_branch,
                                                                          copy_to_root)
 
                 FileUtility.copyFilesByName(src_train_image_filenames, dst_train_image_filenames)
                 FileUtility.copyFilesByName(src_train_gt_filenames, dst_train_gt_filenames)
+                FileUtility.copyFilesByName(src_valid_image_filenames, dst_valid_image_filenames)
+                FileUtility.copyFilesByName(src_valid_gt_filenames, dst_valid_gt_filenames)
                 FileUtility.copyFilesByName(src_test_image_filenames, dst_test_image_filenames)
                 FileUtility.copyFilesByName(src_test_gt_filenames, dst_test_gt_filenames)
 
 
         else:
             image_filenames, gt_filenames = GTDetection.getGtFiles(media)
-            train_indexs, test_indexs = GTUtility.getGTIndexs(len(image_filenames), train_per, select_type)
+            train_indexs,valid_indexs, test_indexs = GTUtility.getGTIndexs(len(image_filenames),valid_per,test_per, select_type)
 
             src_train_image_filenames, src_train_gt_filenames = GTDetection.getGTFiles(image_filenames, gt_filenames,
                                                                                        train_indexs)
+
+            src_valid_image_filenames, src_valid_gt_filenames = GTDetection.getGTFiles(image_filenames, gt_filenames,
+                                                                                       valid_indexs)
+
             src_test_image_filenames, src_test_gt_filenames = GTDetection.getGTFiles(image_filenames, gt_filenames,
                                                                                      test_indexs)
 
             dst_path_train = os.path.join(dst_path, branchs[0])
-            dst_path_test = os.path.join(dst_path, branchs[1])
+            dst_path_valid = os.path.join(dst_path, branchs[1])
+            dst_path_test = os.path.join(dst_path, branchs[2])
 
-            dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, media, dst_path_train,
+            dst_train_image_filenames = FileUtility.getDstFilenames2(src_train_image_filenames, dst_path_train,media,
                                                                      copy_to_root)
-            dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, media, dst_path_train,
+            dst_train_gt_filenames = FileUtility.getDstFilenames2(src_train_gt_filenames, dst_path_train,media,
                                                                   copy_to_root)
 
-            dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, media, dst_path_test,
+            dst_valid_image_filenames = FileUtility.getDstFilenames2(src_valid_image_filenames, dst_path_valid,media,
+                                                                     copy_to_root)
+            dst_valid_gt_filenames = FileUtility.getDstFilenames2(src_valid_gt_filenames, dst_path_valid,media,
+                                                                  copy_to_root)
+
+
+            dst_test_image_filenames = FileUtility.getDstFilenames2(src_test_image_filenames, dst_path_test,media,
                                                                     copy_to_root)
-            dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, media, dst_path_test,
+            dst_test_gt_filenames = FileUtility.getDstFilenames2(src_test_gt_filenames, dst_path_test,media,
                                                                  copy_to_root)
 
             FileUtility.copyFilesByName(src_train_image_filenames, dst_train_image_filenames)
             FileUtility.copyFilesByName(src_train_gt_filenames, dst_train_gt_filenames)
+            FileUtility.copyFilesByName(src_valid_image_filenames, dst_valid_image_filenames)
+            FileUtility.copyFilesByName(src_valid_gt_filenames, dst_valid_gt_filenames)
             FileUtility.copyFilesByName(src_test_image_filenames, dst_test_image_filenames)
             FileUtility.copyFilesByName(src_test_gt_filenames, dst_test_gt_filenames)
 

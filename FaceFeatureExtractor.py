@@ -52,7 +52,7 @@ class FaceFeatureExtrator:
 
     def _load_ir50(self):
         self._ir50_fe = FaceFeatureExtractIR(FaceFeatureType.IR50,
-                                    r'E:\Database\data_deep\face_models\face_evoLVe\backbone_ir50_ms1m_epoch120.pth')
+                                    r'd:\Database\data_deep\face_models\face_evoLVe\backbone_ir50_ms1m_epoch120.pth')
 
     def _load_facenet128(self):
         self._facenet128_fe = Facenet.loadModel()

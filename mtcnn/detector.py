@@ -29,7 +29,7 @@ class MTCNN:
  
  
     def trace_models(self):
-        models_path = r'D:\mtcnn_models'
+        models_path = r'C:\Source\Repo\PayeshChehre\test2'
         self._onet_filename = os.path.join(models_path, 'ONet.pt')
         self._rnet_filename = os.path.join(models_path, 'RNet.pt')
         self._pnet_filename = os.path.join(models_path, 'PNet.pt')

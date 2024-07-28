@@ -193,3 +193,117 @@ class RectUtility:
           return region[2] * region[3] == 0
 
 
+class RectUtil:
+   @staticmethod
+   def size(r):
+       width = r[2] - r[0] +1
+       if width < 0 :
+         width = 0
+       height = r[3] - r[1] +1
+       if height < 0 :
+         height = 0
+
+       return  (width,height)
+
+
+   @staticmethod
+   def area(r):
+       rect_size = RectUtil.size(r)
+       return rect_size[0] * rect_size[1]
+
+   @staticmethod
+   def intersection(r1,r2):
+     return (max(r1[0],r2[0]),max(r1[1],r2[1]),min(r1[2],r2[2]),min(r1[3],r2[3]))
+
+   @staticmethod
+   def intersection_x(r1,r2):
+     result = min(r1[2], r2[2]) - max(r1[0], r2[0])
+     if result < 0 :
+       result = 0
+     return result
+
+   @staticmethod
+   def intersection_y(r1,r2):
+     result = min(r1[3], r2[3]) - max(r1[1], r2[1])
+     if result < 0 :
+       result = 0
+     return result
+
+
+
+   @staticmethod
+   def union(r1,r2):
+     return (min(r1[0], r2[0]), min(r1[1], r2[1]), max(r1[2], r2[2]), max(r1[3], r2[3]))
+
+   @staticmethod
+   def IOU(r1, r2):
+     intersection_rect = RectUtil.intersection(r1,r2)
+     union_rect = RectUtil.union(r1, r2)
+
+     intersection_area = float(RectUtil.area(intersection_rect))
+     union_area = float(RectUtil.area(union_rect))
+
+     return intersection_area / union_area
+
+
+   @staticmethod
+   def merge_intersections(regions):
+     result = []
+     for i in range(len(regions)):
+       if i + 1 >= len(regions):
+         result.append(regions[i])
+       else:
+            intersect_value = RectUtil.intersection(regions[i],regions[i+1])
+            if intersect_value > 0 :
+              result.append(RectUtil.union(regions[i],regions[i+1]))
+              i += 1
+
+     return result
+
+   @staticmethod
+   def merge_intersections_x(regions):
+     result = []
+     flags = [1] *len(regions)
+     for i in range(len(regions)):
+         if flags[i] == 0:
+             continue
+         flags[i] = 0
+         conflict = 0
+         cur_region = regions[i]
+         for j in range(1,len(regions)):
+             if flags[j] == 0:
+                 continue
+             value = RectUtil.intersection_x(cur_region,regions[j])
+             if value > 0 :
+                 cur_region = RectUtil.union(cur_region,regions[j])
+                 flags[j] = 0
+         result.append(result)
+
+   @staticmethod
+   def merge_intersections_y(regions):
+     result = []
+     flags = [1] *len(regions)
+     for i in range(len(regions)-1):
+         if flags[i] == 0:
+             continue
+         flags[i] = 0
+         conflict = 0
+         cur_region = regions[i]
+         for j in range(i+1,len(regions)):
+             if flags[j] == 0:
+                 continue
+             value = RectUtil.intersection_y(cur_region,regions[j])
+             if value > 0 :
+                 cur_region = RectUtil.union(cur_region,regions[j])
+                 flags[j] = 0
+         result.append(cur_region)
+     return result
+
+
+
+
+
+
+
+
+

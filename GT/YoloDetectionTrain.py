@@ -3,11 +3,11 @@ import os
 from HKC.GT.YOLO import *
 from HKC.CvUtility import *
 import  cv2
-
+from HKC.GTDetection import *
 class YoloDetectionTrain:
     def __init__(self, project_name, model_name='ssd_mobilenet_v2_fpnlite_320x320',
-                       models_root_path=r'E:\Models',
-                       db_root_path=r'E:\Database'
+                       models_root_path=r'd:\Models',
+                       db_root_path=r'd:\Database'
                      ):
             self._model_name = None
             self._models_root_path = None
@@ -130,8 +130,9 @@ class YoloDetectionTrain:
 
         for i, res in enumerate(result):
             cur_yolo = yolo.clone()
-            cur_yolo.filter_by_region(res[1])
-            cur_yolo.data_.size_ = (int(res[1][2] * width), int(res[1][3] * height), 3)
+            rct = CvUtility.rect2Yolorect(res[1], (width, height))
+            cur_yolo.filter_by_region(rct)
+            cur_yolo.data_.size_ = (int(rct[2] * width), int(rct[3] * height), 3)
 
             cur_image_dst_filename = FileUtility.changeFileNameEx(image_dst_filename, "", "", "_" + str(i))
             cur_gt_dst_filename = FileUtility.changeFileNameEx(gt_dst_filename, "", "", "_" + str(i))

@@ -8,7 +8,7 @@ class ModuleUtility:
 
   @staticmethod
   def dumpbin():
-    return R'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.30.30705\bin\Hostx64\x64\dumpbin.exe',
+    return R'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.37.32822\bin\Hostx64\x64\dumpbin.exe',
 
   @staticmethod
   def getModuleExtensions():

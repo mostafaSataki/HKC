@@ -1,0 +1,9 @@
+recursive-include GT *
+recursive-include align *
+recursive-include models *
+recursive-include mtcnn *
+recursive-include open_vino *
+recursive-include Siamese *
+recursive-include util *
+recursive-include VOC *
+global-exclude __pycache__/*

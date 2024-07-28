@@ -42,4 +42,4 @@ class FaceAlignment:
         self._openvino_aligner = OpenvinoAlignment()
 
     def _load_SF(self):
-        self._sf_aligner = cv2.FaceRecognizerSF_create(r"E:\Models\face_recognizer_fast.onnx", "")
+        self._sf_aligner = cv2.FaceRecognizerSF_create(r"d:\Models\face_recognizer_fast.onnx", "")

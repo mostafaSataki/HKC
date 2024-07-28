@@ -31,12 +31,12 @@ class CvUtility:
   @staticmethod
   def loadImage(filename,flag = cv2.IMREAD_COLOR):
 
-    if FileUtility.checkTifImage(filename):
-      image = CvUtility.imreadU(filename,cv2.IMREAD_GRAYSCALE)
-      if flag == cv2.IMREAD_COLOR:
-        image = cv2.cvtColor(image,cv2.COLOR_GRAY2BGR)
-    else :image = CvUtility.imreadU(filename,flag)
-    return image
+    if FileUtility.checkIsImage(filename):
+      image = CvUtility.imreadU(filename,flag)
+      if not  image is None:
+        if flag != cv2.IMREAD_COLOR:
+           image = cv2.cvtColor(image,cv2.COLOR_GRAY2BGR)
+      return image
 
   @staticmethod
   def imwriteU(filename,image, params=None):
@@ -52,11 +52,13 @@ class CvUtility:
 
     dst_filename = FileUtility.getDstFilename(src_filename, dst_path_branch)
     cv2.imwrite(dst_filename,img)
+    return   dst_filename
 
   @staticmethod
   def changeImageFormat(src_filename,dst_filename,jpeg_quality = 30):
     image = CvUtility.loadImage(src_filename)
-    CvUtility.imwriteU(dst_filename,image,[cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
+    if not image is None:
+      CvUtility.imwriteU(dst_filename,image,[cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
     # cv2.imwrite(dst_filename,image)
 
   @staticmethod
@@ -64,12 +66,13 @@ class CvUtility:
     FileUtility.copyFullSubFolders(src_path,dst_path)
 
     src_filenames = FileUtility.getFolderImageFiles(src_path)
-    dst_filenames = FileUtility.getDstFilenames2(src_filenames,src_path, dst_path)
+    dst_filenames = FileUtility.getDstFilenames2(src_filenames,dst_path,src_path )
 
 
     dst_filenames = FileUtility.changeFilesExt(dst_filenames, dst_ext)
 
     for i in tqdm(range(len(dst_filenames)), ncols=100):
+       # print(src_filenames[i])
        dst_filename = dst_filenames[i]
        # print(i/len(dst_filenames)* 100, dst_filename)
        CvUtility.changeImageFormat(src_filenames[i],dst_filename,jpeg_quality)
@@ -200,12 +203,36 @@ class CvUtility:
     return dst
 
   @staticmethod
-  def fitOnSizeMat(src, dst_size, interpolation=None):
+  def get_size_order(ref_size):
+    # Determine the order of ref_size
+    if ref_size[0] < ref_size[1]:
+      order = "Asc"
+    else:
+      order = "Desc"
+    return order
+
+  @staticmethod
+  def autoDimSize(size, ref_size):
+    order = CvUtility.get_size_order(ref_size)
+    # Convert size to a list, sort it, and convert it back to a tuple
+    size = list(size)
+    if order == "Asc":
+      size.sort()
+    else:
+      size.sort(reverse=True)
+    size = tuple(size)
+    return size
+  @staticmethod
+  def fitOnSizeMat(src, dst_size, interpolation=None,auto_dim = False):
+
+    if auto_dim:
+        src_size = CvUtility.getImageSize(src)
+        dst_size = CvUtility.autoDimSize(dst_size,src_size)
 
     size, scale = CvUtility.fitOnSizeCorrect(src, dst_size)
     result = cv2.resize(src, size, 0, 0)
     if len(result.shape) == 2:
-      result = result.reshape(dst_size[1], dst_size[0], 1)
+      result = result.reshape(size[1], size[0], 1)
 
     return result, scale
 
@@ -275,7 +302,8 @@ class CvUtility:
       cv2.imwrite(dst_file,dst_image,[cv2.IMWRITE_JPEG_QUALITY,jpeg_quality])
 
   @staticmethod
-  def resize(src_path,dst_path,dst_size, post_fix = "",jpeg_quality = 70):
+  def resize(src_path,dst_path,dst_size,coefficient =None, post_fix = "",jpeg_quality = 70):
+
     src_files = FileUtility.getFolderImageFiles(src_path)
     dst_files = FileUtility.getDstFilenames2(src_files,src_path,dst_path)
 
@@ -289,9 +317,43 @@ class CvUtility:
       dst_filename = dst_files[i]
 
       src_image = cv2.imread(src_filename)
-      dst_image = cv2.resize(src_image,dst_size,cv2.INTER_CUBIC)
+
+      new_size = dst_size
+      if coefficient :
+        new_width = int(src_image.shape[1] * coefficient)
+        new_height = int(src_image.shape[0] * coefficient)
+        new_size = (new_width,new_height)
+
+      dst_image = cv2.resize(src_image,new_size,cv2.INTER_CUBIC)
 
       cv2.imwrite(dst_filename,dst_image,[cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
+
+  @staticmethod
+  def fitOnSizeMatBatch(src_path, dst_path, dst_size, interpolation=None, dst_ext = None, post_fix="", jpeg_quality=70
+                        ,auto_dim = False):
+
+
+    src_files = FileUtility.getFolderImageFiles(src_path)
+    dst_files = FileUtility.getDstFilenames2(src_files,dst_path, src_path )
+
+    FileUtility.copyFullSubFolders(src_path, dst_path)
+
+    if post_fix != "":
+      dst_files = FileUtility.changeFilesnamePostfix(dst_files, post_fix)
+
+      if dst_ext is not None:
+         dst_files = FileUtility.changeFilesExt(dst_files, dst_ext)
+
+    for i in tqdm(range(len(src_files)), ncols=100):
+      src_filename = src_files[i]
+      dst_filename = dst_files[i]
+
+      src_image = cv2.imread(src_filename)
+
+      dst_image,_ = CvUtility.fitOnSizeMat(src_image,dst_size,interpolation,auto_dim)
+
+      CvUtility.imwriteU(dst_filename, dst_image, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
+
 
   @staticmethod
   def resizeGray(src_path,dst_path,dst_size, post_fix = "",jpeg_quality = 70):
@@ -1026,8 +1088,8 @@ class CvUtility:
   @staticmethod
   def rotate_image_batch(src_path,dst_path,angle):
     src_files = FileUtility.getFolderImageFiles(src_path)
-    dst_files = FileUtility.getDstFilenames2(src_files,src_path,dst_path)
-    for i in range(len(src_files)):
+    dst_files = FileUtility.getDstFilenames2(src_files,dst_path,src_path)
+    for i in tqdm(range(len(src_files)), ncols=100):
       src_image = cv2.imread(src_files[i])
       dst_image =  CvUtility.rotate_image(src_image,angle)
       cv2.imwrite(dst_files[i],dst_image)
@@ -1035,7 +1097,7 @@ class CvUtility:
   @staticmethod
   def rotate_image_batchs(src_path, dst_path, angles):
     src_files = FileUtility.getFolderImageFiles(src_path)
-    dst_files = FileUtility.getDstFilenames2(src_files, src_path, dst_path)
+    dst_files = FileUtility.getDstFilenames2(src_files,  dst_path,src_path)
     for i in range(len(src_files)):
       src_image = cv2.imread(src_files[i])
       for angle in angles:
@@ -1047,7 +1109,8 @@ class CvUtility:
   def rotate_image_batch_(images_path,angle):
     src_files = FileUtility.getFolderImageFiles(src_path)
 
-    for i in range(len(src_files)):
+    for i in tqdm(range(len(src_files)), ncols=100):
+
       src_image = cv2.imread(src_files[i])
       dst_image =  CvUtility.rotate_image2(src_image,angle)
       cv2.imwrite(src_files[i], dst_image)
@@ -1161,7 +1224,7 @@ class CvUtility:
 
         cur_patch = image[y1:y2, x1:x2]
         r = (x1, y1, x2, y2)
-        result.append([cur_patch, CvUtility.rect2Yolorect(r, (width, height))])
+        result.append([cur_patch,r ])
 
     return result
 

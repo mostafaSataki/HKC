@@ -35,22 +35,22 @@ class FaceDetection:
         score_thresh = 0.9
         nms_thresh = 0.3
 
-        self._yunet_detector = cv2.FaceDetectorYN_create(r"E:\Models\yunet.onnx", "", (150, 150), score_thresh, nms_thresh)
+        self._yunet_detector = cv2.FaceDetectorYN_create(r"D:\Models\yunet.onnx", "", (150, 150), score_thresh, nms_thresh)
 
     def load_dlib(self):
         self._dlib_detector = dlib.get_frontal_face_detector()
 
 
     def load_cv_cascade(self):
-        cascade_face_filename = r'I:\Library\opencv4.5.3\opencv\data\haarcascades\haarcascade_frontalface_default.xml'
+        cascade_face_filename = r'D:\library\opencv4\opencv4.10\opencv\sources\data\haarcascades\haarcascade_frontalface_default.xml'
         self._cascade_detector = cv2.CascadeClassifier(cascade_face_filename)
 
     def load_cv_dnn(self):
         # model_filename = r'C:\Source\Repo\Detection\x64\deploy.prototxt'
         # config_filename = r'C:\Source\Repo\Detection\x64\res10_300x300_ssd_iter_140000_fp16.caffemodel'
-        models_path = r'E:\Database\data_deep\face_models'
-        model_filename = os.path.join(models_path, r'opencv\opencv_face_detector.pbtxt')
-        config_filename = os.path.join(models_path, r'opencv\opencv_face_detector_uint8.pb')
+        models_path = r'C:\Source\Repo\FaceLiveness\x64\assets\model'
+        model_filename = os.path.join(models_path, r'opencv_face_detector.pbtxt')
+        config_filename = os.path.join(models_path, r'opencv_face_detector_uint8.pb')
 
         self._cv_dnn = cv2.dnn.readNet(model_filename,config_filename)
 
