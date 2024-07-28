@@ -335,6 +335,21 @@ class FileUtility:
     for sub_folder in sub_folders:
       result.append(os.path.join(os.path.join(file_path,sub_folder),filename))
     return result
+  
+  @staticmethod
+  def intersection(folder1,folder2):
+    filenames1 = FileUtility.getFolderFiles(folder1)
+    filenames2 = FileUtility.getFolderFiles(folder2)
+
+    fnames1 = set(FileUtility.getFilenames(filenames1))
+    fnames2 = set(FileUtility.getFilenames(filenames2))
+
+    common_files = fnames1.intersection(fnames2)
+
+    new_filenames1 = FileUtility.joins(common_files, folder1)
+    new_filenames2 = FileUtility.joins(common_files, folder2)
+      
+    return new_filenames1,new_filenames2
 
   @staticmethod
   def joins(filenames,dst_path):
