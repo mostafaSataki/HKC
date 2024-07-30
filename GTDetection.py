@@ -1,7 +1,7 @@
 import enum
 import os
 
-from matplotlib.tight_layout import get_tight_layout_figure
+# from matplotlib.tight_layout import get_tight_layout_figure
 
 from  .GTUtility import *
 from .GT.VOC import *

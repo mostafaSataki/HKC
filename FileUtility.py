@@ -421,8 +421,8 @@ class FileUtility:
   def copyFiles2(src_path, dst_path, pattern_path, cut_flag=False, pair_extension=None):
     pattern_files = FileUtility.getFoldersFiles(pattern_path)
 
-    src_files = FileUtility.getDstFilenames2(pattern_files,pattern_path,src_path)
-    dst_files = FileUtility.getDstFilenames2(pattern_files, pattern_path, dst_path)
+    src_files = FileUtility.getDstFilenames2(pattern_files,pattern_path,src_path,pair_extension)
+    dst_files = FileUtility.getDstFilenames2(pattern_files, pattern_path, dst_path,pair_extension)
 
     for i in tqdm(range(len(pattern_files)), ncols=100):
       if os.path.exists(src_files[i]):
@@ -474,23 +474,27 @@ class FileUtility:
       return common_dir
 
   @staticmethod
-  def getDstFilename2(src_filename, dst_path,src_path = None, copy_to_root = False):
+  def getDstFilename2(src_filename, dst_path,src_path = None, copy_to_root = False,dst_extension = None):
     if src_path is None:
       src_path = FileUtility.get_parent_path(src_filename)
 
     if copy_to_root:
       tokens = FileUtility.getFileTokens(src_filename)
-      return os.path.join(dst_path,tokens[1]+tokens[2]) 
+      result =  os.path.join(dst_path,tokens[1]+tokens[2])
     else :
 
       fname= src_filename[len(src_path)+1:]
-      return os.path.join(dst_path,fname)
+      result = os.path.join(dst_path,fname)
+    if dst_extension is not None:
+      result = FileUtility.changeFileExt(result,dst_extension)
+
+    return result
 
   @staticmethod
-  def getDstFilenames2(src_filenames, dst_path,src_path = None, copy_to_root = False):
+  def getDstFilenames2(src_filenames, dst_path,src_path = None, copy_to_root = False,dst_extension = None):
     result = []
     for src_filename in src_filenames:
-      result.append(FileUtility.getDstFilename2(src_filename,dst_path,src_path,copy_to_root))
+      result.append(FileUtility.getDstFilename2(src_filename,dst_path,src_path,copy_to_root,dst_extension))
 
     return result
 
