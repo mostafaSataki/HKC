@@ -13,6 +13,53 @@ import os
 import glob
 import pandas as pd
 import xml.etree.ElementTree as ET
+from .CvUtility import *
+
+
+
+class TrainUtility:
+    @staticmethod
+    def split_data(src_dir,dst_dir,valid_per=0.2,test_per=0):
+        branches = ['train', 'val', 'test']
+        FileUtility.createClearFolder(dst_dir)
+        train_per = 1 - valid_per - test_per
+        pers = [train_per, valid_per]
+
+        if test_per != 0:
+            pers.append(test_per)
+
+
+        # create dst folders
+        class_names = FileUtility.getSubfolders(src_dir)
+        for i in range(len(pers)):
+            dst_branch = os.path.join(dst_dir, branches[i])
+            FileUtility.createClearFolder(dst_branch)
+            FileUtility.createSubfolders(dst_branch, class_names)
+
+        for k in tqdm(range(len(class_names)), ncols=100):
+            class_name = class_names[k]
+            src_class_path = os.path.join(src_dir, class_name)
+            src_class_files = FileUtility.getFolderImageFiles(src_class_path)
+            count = len(src_class_files)
+            indexs = [i for i in range(0, count)]
+            random.shuffle(indexs)
+            start = 0
+            for i in range(len(pers)):
+                branch = branches[i]
+                per = pers[i]
+
+                dst_branch_path = os.path.join(dst_dir, branch)
+                dst_class_path = os.path.join(dst_branch_path, class_name)
+
+                branch_count = int(count * per)
+                for j in range(start, start + branch_count):
+                    src_file = src_class_files[indexs[j]]
+                    dst_file = FileUtility.getDstFilename2(src_file, dst_class_path, src_class_path, True)
+                    FileUtility.copyFile(src_file, dst_file)
+                start += branch_count
+
+
+
 # from keras.models import load_model
 #
 #

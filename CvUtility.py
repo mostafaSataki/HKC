@@ -24,6 +24,25 @@ class CvUtility:
       return dst_image,scale
 
   @staticmethod
+  def resizeDown(src_image, size, interpolation=cv2.INTER_LINEAR):
+    src_width = src_image.shape[1]
+    src_height = src_image.shape[0]
+
+    dst_image = src_image.copy()
+    dst_width = dst_image.shape[1]
+    dst_height = dst_image.shape[0]
+    while (dst_width / 2 > size[0] and dst_height / 2 > size[1]):
+      dst_image = cv2.pyrDown(dst_image, (int(dst_width / 2), int(dst_height / 2)))
+      dst_width = dst_image.shape[1]
+      dst_height = dst_image.shape[0]
+
+    if (dst_width != size[0] and dst_height != size[1]):
+      dst_image = cv2.resize(dst_image, size, 0, 0, interpolation)
+
+    out_size = (float(src_width) / size[0], float(src_height) / size[1])
+    return dst_image, out_size
+
+  @staticmethod
   def imreadU(filename,flag):
     return cv2.imdecode(np.fromfile(filename,dtype=np.uint8), flag)
 
@@ -60,6 +79,16 @@ class CvUtility:
     if not image is None:
       CvUtility.imwriteU(dst_filename,image,[cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
     # cv2.imwrite(dst_filename,image)
+
+  def changeDownImageFormat(args, src_filename, dst_filename, jpeg_quality=60):
+    image = CvUtility.loadImage(src_filename)
+    if image is None:
+      print('error None image' + src_filename)
+      return
+
+    image, _ = self.resizeDown(image, (args.input_size, args.input_size), cv2.INTER_CUBIC)
+    if not image is None:
+      CvUtility.imwriteU(dst_filename, image, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
 
   @staticmethod
   def changeImagesFormat(src_path,dst_path, dst_ext, jpeg_quality = 60, delete_source = False):
@@ -290,8 +319,8 @@ class CvUtility:
 
     src_files = FileUtility.getFolderImageFiles(src_path)
     if src_path != dst_path :
-      FileUtility.copyFullSubFolders(src_path,dst_path
-                                   )
+      FileUtility.create_folder_if_not_exists(dst_path)
+      FileUtility.copyFullSubFolders(src_path,dst_path      )
     dst_files = FileUtility.getDstFilenames2(src_files,src_path, dst_path)
 
     for i in tqdm(range(len(src_files)), ncols=100):
@@ -843,38 +872,38 @@ class CvUtility:
       result.append(CvUtility.readImage(filename,size,norm,gray,float_type))
     return result
 
+  # @staticmethod
+  # def resizeDown(src_image,  size, interpolation ) :
+  # 
+  #   dst_image = src_image.copy()
+  #   shape = dst_image.shape
+  #   w = shape[1]
+  #   h = shape[0]
+  # 
+  #   while (w / 2 > size[0]) and ( h / 2 > size[1]) :
+  #     dst_image =cv2.pyrDown(dst_image,(int(w / 2), int(h / 2)))
+  #     shape = dst_image.shape
+  #     w = shape[1]
+  #     h = shape[0]
+  # 
+  #   shape = dst_image.shape
+  #   w = shape[1]
+  #   h = shape[0]
+  # 
+  #   if (w != size[0] or h != size[1]):
+  #      dst_image = cv2.resize(dst_image,  size, 0, 0, interpolation);
+  # 
+  #   return  dst_image
+
   @staticmethod
-  def resizeDown(src_image,  size, interpolation ) :
-
-    dst_image = src_image.copy()
-    shape = dst_image.shape
-    w = shape[1]
-    h = shape[0]
-
-    while (w / 2 > size[0]) and ( h / 2 > size[1]) :
-      dst_image =cv2.pyrDown(dst_image,(int(w / 2), int(h / 2)))
-      shape = dst_image.shape
-      w = shape[1]
-      h = shape[0]
-
-    shape = dst_image.shape
-    w = shape[1]
-    h = shape[0]
-
-    if (w != size[0] or h != size[1]):
-       dst_image = cv2.resize(dst_image,  size, 0, 0, interpolation);
-
-    return  dst_image
-
-  @staticmethod
-  def resizeDownBatch(src_path,dst_path,dst_size, interpolation=None,jpeg_quality = 30):
+  def resizeDownBatch(src_path,dst_path,dst_size, interpolation=cv2.INTER_LINEAR,jpeg_quality = 30):
 
 
     src_files = FileUtility.getFolderImageFiles(src_path)
     if src_path != dst_path :
       FileUtility.copyFullSubFolders(src_path,dst_path
                                    )
-    dst_files = FileUtility.getDstFilenames2(src_files,src_path, dst_path)
+    dst_files = FileUtility.getDstFilenames2(src_files, dst_path,src_path)
     dst_files = FileUtility.changeFilesExt(dst_files,'jpg')
 
     for i in tqdm(range(len(src_files)), ncols=100):
