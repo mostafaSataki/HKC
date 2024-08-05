@@ -320,8 +320,9 @@ class CvUtility:
     src_files = FileUtility.getFolderImageFiles(src_path)
     if src_path != dst_path :
       FileUtility.create_folder_if_not_exists(dst_path)
-      FileUtility.copyFullSubFolders(src_path,dst_path      )
-    dst_files = FileUtility.getDstFilenames2(src_files,src_path, dst_path)
+      FileUtility.copyFullSubFolders(src_path,dst_path   )
+
+    dst_files = FileUtility.getDstFilenames2(src_files,dst_path,src_path )
 
     for i in tqdm(range(len(src_files)), ncols=100):
       src_file = src_files[i]
