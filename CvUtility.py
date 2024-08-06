@@ -1258,6 +1258,108 @@ class CvUtility:
 
     return result
 
+  @staticmethod
+  def get_contour_in_direct( contour, direct):
+    result = contour[:]
+
+    if len(contour) != 4:
+      return []
+
+    result = CvUtility.put_left_top_in_first(result)
+
+    dist1 = np.linalg.norm(result[1] - result[0])
+    dist2 = np.linalg.norm(result[2] - result[1])
+
+    if (direct == 'horz' and dist1 < dist2) or (direct == 'vert' and dist1 > dist2):
+      result = np.roll(result, -1, axis=0)
+
+    return result
+
+  @staticmethod
+  def find_left_top_point( contour):
+        leftmost = np.inf
+        topmost = np.inf
+        left_top_point = None
+
+        for point in contour:
+            if point[0][0] < leftmost or (point[0][0] == leftmost and point[0][1] < topmost):
+                leftmost = point[0][0]
+                topmost = point[0][1]
+                left_top_point = (leftmost, topmost)
+
+        return left_top_point
+
+  @staticmethod
+  def find_left_topest_point( contour):
+        bb_lt = CvUtility.find_left_top_point(contour)
+        min_dist = np.inf
+        closest_point_index = 0
+
+        for i, point in enumerate(contour):
+            dist = np.sqrt((point[0][0] - bb_lt[0]) ** 2 + (point[0][1] - bb_lt[1]) ** 2)
+            if dist < min_dist:
+                min_dist = dist
+                closest_point_index = i
+
+        return closest_point_index
+  @staticmethod
+  def put_left_top_in_first( contour):
+    result = contour[:]
+    lt_index = CvUtility.find_left_topest_point(contour)
+    result = np.roll(result, -lt_index, axis=0)
+    return result
+
+
+  @staticmethod
+  def rectify_rect_image( src_img, contour, dst_size):
+    contour1 = CvUtility.get_contour_in_direct(contour, 'horz')
+    contour = np.array(contour1, dtype=np.float32)
+
+    dst = np.array([
+      [0, 0],
+      [dst_size[0], 0],
+      [dst_size[0], dst_size[1]],
+      [0, dst_size[1]]
+    ], dtype=np.float32)
+
+    transform = cv2.getPerspectiveTransform(contour, dst)
+    dst_img = cv2.warpPerspective(src_img, transform, (dst_size[0], dst_size[1]))
+
+    return dst_img
+
+  @staticmethod
+  def get_rect_contour_dimension( approx_contour):
+    contour = approx_contour.reshape(-1, 2)
+
+    # Extract x and y coordinates
+    x_coords = contour[:, 0]
+    y_coords = contour[:, 1]
+
+    # Calculate the bounding box dimensions
+    min_x, max_x = min(x_coords), max(x_coords)
+    min_y, max_y = min(y_coords), max(y_coords)
+    width = max_x - min_x
+    height = max_y - min_y
+
+    # Swap width and height if necessary
+    if height > width:
+      width, height = height, width
+
+    return (width, height)
+
+  @staticmethod
+  def approximate_rect_contour( contour):
+    epsilon = 0.1
+    while True:
+      approx = cv2.approxPolyDP(contour, epsilon, True)
+      epsilon += 0.1
+      if len(approx) <= 4:
+        break
+
+    if len(approx) != 4:
+      None
+    return approx
+
  
     
 
