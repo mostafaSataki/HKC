@@ -1260,12 +1260,12 @@ class CvUtility:
 
   @staticmethod
   def get_contour_in_direct( contour, direct):
-    result = contour[:]
+    result = contour[::-1]
 
     if len(contour) != 4:
       return []
 
-    result = CvUtility.put_left_top_in_first(result)
+    # result = CvUtility.put_left_top_in_first(result)
 
     dist1 = np.linalg.norm(result[1] - result[0])
     dist2 = np.linalg.norm(result[2] - result[1])
@@ -1311,10 +1311,13 @@ class CvUtility:
 
 
   @staticmethod
-  def rectify_rect_image( src_img, contour, dst_size):
-    contour1 = CvUtility.get_contour_in_direct(contour, 'horz')
+  def rectify_rect_image( src_img, contour, dst_size,direct = 'horz'):
+    contour1 = CvUtility.get_contour_in_direct(contour, direct)
+
     contour = np.array(contour1, dtype=np.float32)
 
+    if contour.shape != (4,1,2):
+      return None
     dst = np.array([
       [0, 0],
       [dst_size[0], 0],

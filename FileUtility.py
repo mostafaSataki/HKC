@@ -26,6 +26,8 @@ import os
 import platform
 from pathlib import Path
 from .Utility import *
+from collections import defaultdict
+
 
 class MediaType(Enum):
   folder = 1
@@ -1540,6 +1542,60 @@ class FileUtility:
     fname = FileUtility.getfilename(filenamee)
     dst_filename = os.path.join(dst_path,fname)
     FileUtility.copyFile(filenamee,dst_filename)
+
+
+  @staticmethod
+  def count_files_by_extension(folder_path):
+    file_counts = defaultdict(int)
+    for filename in os.listdir(folder_path):
+      if os.path.isfile(os.path.join(folder_path, filename)):
+        extension = os.path.splitext(filename)[1][1:].lower()
+        file_counts[extension] += 1
+    return file_counts
+
+  @staticmethod
+  def compare_extension_counts(folder_path,ext1,ext2):
+    file_counts = count_files_by_extension(folder_path)
+    ext1_count = file_counts.get(ext1, 0)
+    ext2_count = file_counts.get(ext2, 0)
+
+    if ext1_count > ext2_count:
+      return ext1
+    elif ext1_count < ext2_count:
+      return ext2
+    else:
+      return None
+
+  @staticmethod
+  def copy_gt_file(src_dir, dst_dir, ext, prefix=None, postfix=None):
+    src_filenames = FileUtility.getFolderFiles(src_dir, [ext])
+    dst_filenames = FileUtility.getDstFilenames2(src_filenames, src_dir, dst_dir)
+    if prefix:
+      dst_filenames = FileUtility.changeFilesnamePrefix(dst_filenames, prefix)
+
+    if postfix:
+      dst_filenames = FileUtility.changeFilesnamePostfix(dst_filenames, postfix)
+
+    FileUtility.copyFilesByName(src_filenames, dst_filenames)
+
+  @staticmethod
+  def rename_replace_files(src_dir,find_str,replace_str):
+    src_filenames = FileUtility.getFolderImageFiles(src_dir)
+    for src_filename in tqdm(src_filenames):
+      dst_filename = src_filename.replace(find_str, replace_str)
+      os.rename(src_filename, dst_filename)
+  
+  @staticmethod
+  def remove_postfix(src_path, postfix):
+    src_files = FileUtility.getFolderFiles(src_path)
+    for src_file in tqdm(src_files):
+      new_src_file = src_file.replace(postfix, '')
+      if os.path.exists(new_src_file):
+        os.remove(src_file)
+      else:
+        os.rename(src_file, new_src_file)
+
+
 
 
 
