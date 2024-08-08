@@ -208,6 +208,9 @@ class YoloAugmentDB:
 
 
         for i in tqdm(range(len(src_image_filenames))):
+            FileUtility.copy2Path(src_image_filenames[i],dst_path)
+            FileUtility.copy2Path(src_json_filenames[i],dst_path)
+
             for angle in angles:
                 src_image_filename = src_image_filenames[i]
                 src_json_filename = src_json_filenames[i]

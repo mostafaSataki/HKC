@@ -28,7 +28,10 @@ class LableMeJson2YOLO:
             elif self.action_type == ActionType.pose_estimation:
                 self._convert_file_pose_estimation(json_filename, yolo_filename)
     def _convert_file_segmentation(self, json_filename, yolo_filename):
+        fname = FileUtility.getFilenameWithoutExt(json_filename)
 
+        if fname == "new_id_ (280)":
+            print('find')
         with open(json_filename, 'r') as file:
             data = json.load(file)
 
@@ -209,6 +212,43 @@ class LableMeJson2YOLO:
             json_filename = json_filenames[i]
             image_filename = image_filenames[i]
             LableMeJson2YOLO.editJsonFile(json_filename, image_filename)
+
+    @staticmethod
+    def refresh_dimension_file(src_filename):
+        gt_filename = FileUtility.checkFileExt(src_filename,'json')
+        image = cv2.imread(src_filename)
+
+        height, width = image.shape[:2]
+
+    @staticmethod
+    def update_image_dimensions(src_filename):
+        gt_filename = FileUtility.changeFileExt(src_filename,'json')
+        image = cv2.imread(src_filename)
+
+        height, width = image.shape[:2]
+
+        if not os.path.exists(gt_filename):
+            return
+        with open(gt_filename, 'r') as file:
+            data = json.load(file)
+
+        data['imageHeight'] = height
+        data['imageWidth'] = width
+
+        with open(gt_filename, 'w') as file:
+            json.dump(data, file, indent=4)
+
+
+
+
+    @staticmethod
+    def update_image_dimensions_dir(src_dir):
+        image_filenames = FileUtility.getFolderImageFiles(src_dir)
+
+
+        for image_filename in tqdm(image_filenames, ncols=100):
+            LableMeJson2YOLO.update_image_dimensions( image_filename)
+
 
 
 

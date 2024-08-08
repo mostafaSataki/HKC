@@ -75,12 +75,12 @@ class YoloUtility:
             lableme_to_yolo = LableMeJson2YOLO(labels, self.action_type)
             lableme_to_yolo.convert_files(train_json_files, train_yolo_files)
             lableme_to_yolo.convert_files(val_json_files, val_yolo_files)
-            lableme_to_yolo.convert_files(train_json_files, train_yolo_files)
+            lableme_to_yolo.convert_files(test_json_files, test_yolo_files)
         elif ext == 'xml':
             voc_to_yolo = Voc2YOLO(labels, self.action_type)
             voc_to_yolo.convert_files(train_json_files, train_yolo_files)
             voc_to_yolo.convert_files(val_json_files, val_yolo_files)
-            voc_to_yolo.convert_files(train_json_files, train_yolo_files)
+            voc_to_yolo.convert_files(test_json_files, test_yolo_files)
 
 
         #copy image files
@@ -308,6 +308,8 @@ class YoloUtility:
     def inference_segment_dir(  model_filename: str, labels_file: str, src_dir: str, dst_dir: str):
         inf = YoloInference(model_filename, labels_file)
         inf.inference_dir(src_dir,dst_dir)
+        
+        
 
 
             

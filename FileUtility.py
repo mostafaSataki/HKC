@@ -1056,7 +1056,8 @@ class FileUtility:
 
   @staticmethod
   def copyFile(src_filename,dst_filename):
-    shutil.copyfile(src_filename, dst_filename)
+    if os.path.exists(src_filename):
+      shutil.copyfile(src_filename, dst_filename)
     
   @staticmethod
   def copyFile2Dst(src_path,dst_path, ext = None):
@@ -1546,10 +1547,10 @@ class FileUtility:
     return  os.path.join(current_dir,input_path)
 
   @staticmethod
-  def copy2Path(filenamee,dst_path):
-    fname = FileUtility.getfilename(filenamee)
+  def copy2Path(filename, dst_path):
+    fname = FileUtility.getFilename(filename)
     dst_filename = os.path.join(dst_path,fname)
-    FileUtility.copyFile(filenamee,dst_filename)
+    FileUtility.copyFile(filename,dst_filename)
 
 
   @staticmethod
