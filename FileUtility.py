@@ -709,6 +709,14 @@ class FileUtility:
         result.append(group+items[0])
 
     return result
+  
+  @staticmethod
+  def remove_unpair_images(src_path):
+    single_samples = FileUtility.getUnpaireSamples(src_path)
+    print("single image count:", len(single_samples))
+    for single_image in single_samples:
+      print(single_image)
+    FileUtility.delete_files(single_samples)
 
   @staticmethod
   def getImageFiles(src_path,dst_path):
@@ -1555,7 +1563,7 @@ class FileUtility:
 
   @staticmethod
   def compare_extension_counts(folder_path,ext1,ext2):
-    file_counts = count_files_by_extension(folder_path)
+    file_counts = FileUtility.count_files_by_extension(folder_path)
     ext1_count = file_counts.get(ext1, 0)
     ext2_count = file_counts.get(ext2, 0)
 

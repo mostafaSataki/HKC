@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from HKC.FileUtility import *
+from typing import List, Tuple
 
 class YoloInference:
     def __init__(self, model_filename: str, labels_file: str):

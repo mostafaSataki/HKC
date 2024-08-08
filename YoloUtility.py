@@ -8,35 +8,37 @@ from typing import List
 from .YoloInference import *
 
 class YoloUtility:
-    def __init__(self,action_type : ActionType,mode_size :ModelSize):
+    def __init__(self,action_type = ActionType.segmentation ,model_size =ModelSize.nano):
         self.action_type = action_type
-        self.mode_size = mode_size
+        self.model_size = model_size
 
 
-    def convert(self,lableme_json_dir,yolo_dir):
+    def convert(self,src_dir,yolo_dir):
         ext = FileUtility.compare_extension_counts(src_dir,'json','xml')
         if ext == None:
             return
 
         FileUtility.create_folder_if_not_exists(yolo_dir)
-        remove_unpair_images(json_dir)
-        image_filenames = FileUtility.getFolderImageFiles(lableme_json_dir)
-        json_filenames = FileUtility.changeFilesExt(image_filenames,ext)
+        FileUtility.remove_unpair_images(src_dir)
+        src_image_filenames = FileUtility.getFolderImageFiles(src_dir)
+        dst_image_filenames = FileUtility.getDstFilenames2(src_image_filenames,yolo_dir,src_dir)
+        gt_filenames = FileUtility.changeFilesExt(src_image_filenames, ext)
 
-        yolo_filenames = FileUtility.getDstFilenames2(json_filenames,yolo_dir,lableme_json_dir)
+        yolo_filenames = FileUtility.getDstFilenames2(gt_filenames,yolo_dir,src_dir)
         yolo_filenames = FileUtility.changeFilesExt(yolo_filenames,'txt')
 
 
         yolo_label_filename = os.path.join(yolo_dir, "classes.txt")
-        labels = save_yolo_label(json_filenames,yolo_label_filename)
+        labels = save_yolo_label(gt_filenames,yolo_label_filename)
 
         if ext == 'json':
             lableme_to_yolo = LableMeJson2YOLO(labels, self.action_type)
-            lableme_to_yolo.convert_files(json_filenames, yolo_filenames)
+            lableme_to_yolo.convert_files(gt_filenames, yolo_filenames)
         elif ext == 'xml':
             voc_to_yolo = Voc2YOLO(labels, self.action_type)
-            voc_to_yolo.convert_files(json_filenames, yolo_filenames)
+            voc_to_yolo.convert_files(gt_filenames, yolo_filenames)
 
+        FileUtility.copyFilesByName(src_image_filenames,dst_image_filenames)
 
 
         
@@ -48,19 +50,19 @@ class YoloUtility:
         train_per = 1 - (val_per + test_per)
         FileUtility.create_folder_if_not_exists(yolo_dir)
 
-        remove_unpair_images(json_dir)
+        remove_unpair_images(src_dir)
 
 
-        json_image_filenames = FileUtility.getFolderImageFiles(json_dir)
-        train_yolo_image_files, val_yolo_image_files, test_yolo_image_files, train_json_image_files, val_json_image_files, test_json_image_files = \
+        json_image_filenames = FileUtility.getFolderImageFiles(src_dir)
+        train_yolo_image_files, val_yolo_image_files, test_yolo_image_files, train_gt_image_files, val_gt_image_files, test_gt_image_files = \
             split_data_filename(json_image_filenames, yolo_dir,  train_per, val_per, test_per)
 
         train_yolo_files = FileUtility.changeFilesExt(train_yolo_image_files,'txt')
         val_yolo_files = FileUtility.changeFilesExt(val_yolo_image_files,'txt')
         test_yolo_files = FileUtility.changeFilesExt(test_yolo_image_files,'txt')
-        train_json_files = FileUtility.changeFilesExt(train_json_image_files,ext)
-        val_json_files =  FileUtility.changeFilesExt(val_json_image_files,ext)
-        test_json_files =   FileUtility.changeFilesExt(test_json_image_files,ext)
+        train_json_files = FileUtility.changeFilesExt(train_gt_image_files, ext)
+        val_json_files =  FileUtility.changeFilesExt(val_gt_image_files, ext)
+        test_json_files =   FileUtility.changeFilesExt(test_gt_image_files, ext)
 
 
         all_json_files = train_json_files + val_json_files + test_json_files
@@ -82,9 +84,9 @@ class YoloUtility:
 
 
         #copy image files
-        FileUtility.copyFilesByName(train_json_image_files,train_yolo_image_files)
-        FileUtility.copyFilesByName(val_json_image_files, val_yolo_image_files)
-        FileUtility.copyFilesByName(test_json_image_files, test_yolo_image_files)
+        FileUtility.copyFilesByName(train_gt_image_files, train_yolo_image_files)
+        FileUtility.copyFilesByName(val_gt_image_files, val_yolo_image_files)
+        FileUtility.copyFilesByName(test_gt_image_files, test_yolo_image_files)
 
 
         self.write_dataset_ymal_proc(yolo_dir,labels)

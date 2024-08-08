@@ -10,7 +10,7 @@ from utility import ActionType
 
 
 
-class LableMeJsonYOLO:
+class LableMeJson2YOLO:
     def __init__(self,labels,action_type: ActionType):
         self.action_type = action_type
         self._to_seg = True
