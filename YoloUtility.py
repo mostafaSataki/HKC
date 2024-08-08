@@ -50,7 +50,7 @@ class YoloUtility:
         train_per = 1 - (val_per + test_per)
         FileUtility.create_folder_if_not_exists(yolo_dir)
 
-        remove_unpair_images(src_dir)
+        FileUtility.remove_unpair_images(src_dir)
 
 
         json_image_filenames = FileUtility.getFolderImageFiles(src_dir)
@@ -72,7 +72,7 @@ class YoloUtility:
         labels = save_yolo_label(all_json_files,yolo_label_filename)
 
         if ext == 'json':
-            lableme_to_yolo = LableMeJsonYOLO(labels, self.action_type)
+            lableme_to_yolo = LableMeJson2YOLO(labels, self.action_type)
             lableme_to_yolo.convert_files(train_json_files, train_yolo_files)
             lableme_to_yolo.convert_files(val_json_files, val_yolo_files)
             lableme_to_yolo.convert_files(train_json_files, train_yolo_files)
