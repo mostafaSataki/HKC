@@ -38,7 +38,8 @@ class Voc2YOLO:
 
         yolo_lines = []
         for obj in root.iter('object'):
-            name = obj.find('name').text
+
+            label_index = self.labels[obj.find('name').text]
             bbox = obj.find('bndbox')
             xmin, ymin, xmax, ymax = (int(bbox.find(x).text) for x in ['xmin', 'ymin', 'xmax', 'ymax'])
             x_center, y_center, w, h = (
@@ -47,7 +48,7 @@ class Voc2YOLO:
                 (xmax - xmin) / width,
                 (ymax - ymin) / height,
             )
-            yolo_lines.append(f"{name} {x_center:.6f} {y_center:.6f} {w:.6f} {h:.6f}")
+            yolo_lines.append(f"{label_index} {x_center:.6f} {y_center:.6f} {w:.6f} {h:.6f}")
 
 
         with open(yolo_filename, 'w') as f:
