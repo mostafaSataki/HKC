@@ -222,9 +222,9 @@ class YoloUtility:
         fname = r'models\{}.pt'.format(model_filename)
 
         filename = os.path.basename(fname)
-        src_segment_filename = os.path.join(os.path.join(os.getcwd(),"Run"), fname)
-        dst_segment_filename = os.path.join(yolo_dir, filename)
-        FileUtility.copyFile(src_segment_filename, dst_segment_filename)
+        src_filename = os.path.join(os.path.join(os.getcwd(),"Run"), fname)
+        dst_filename = os.path.join(yolo_dir, filename)
+        FileUtility.copyFile(src_filename, dst_filename)
 
 
     def create_train_batchfile(self, yolo_dir):
