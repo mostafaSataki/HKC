@@ -144,6 +144,12 @@ class YoloAugmentDB:
         image = cv2.imread(source_image_path)
         (h, w) = image.shape[:2]
 
+        with open(source_json_path, 'r') as f:
+            data = json.load(f)
+
+        if len( data['shapes']) == 0:
+            return
+
         # Rotate image
         if angle == 90:
             rotated_image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
@@ -155,8 +161,7 @@ class YoloAugmentDB:
             raise ValueError("Angle must be 90, 180, or 270 degrees")
 
         # Load JSON
-        with open(source_json_path, 'r') as f:
-            data = json.load(f)
+
 
         # Rotate points
         rotated_shapes = []
@@ -194,6 +199,103 @@ class YoloAugmentDB:
         with open(rotated_json_path, 'w') as f:
             json.dump(new_data, f, indent=4)
 
+    def random_perspective_transform_image_and_labelme_json(self, source_image_path, source_json_path,
+                                                            dst_image_path, dst_json_path,
+                                                            perturbation_scale=0.2, max_attempts=10):
+        # Load image
+        image = cv2.imread(source_image_path)
+        (h, w) = image.shape[:2]
+
+        with open(source_json_path, 'r') as f:
+            data = json.load(f)
+
+        if len(data['shapes']) == 0:
+            return
+
+        src_points = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32)
+
+        for attempt in range(max_attempts):
+            # Create random destination points close to the original points but within the image bounds
+            dst_points = src_points + np.random.uniform(-perturbation_scale, perturbation_scale,
+                                                        src_points.shape) * np.array([w, h], dtype=np.float32)
+
+            # Ensure the points are still within the image boundaries
+            dst_points = np.clip(dst_points, 0, [[w, h]])
+
+            # Ensure points are 4x2 arrays of type np.float32
+            src_points = src_points.astype(np.float32)
+            dst_points = dst_points.astype(np.float32)
+
+            assert src_points.shape == (4, 2) and dst_points.shape == (
+            4, 2), "src_points and dst_points must be 4x2 arrays."
+            assert src_points.dtype == np.float32 and dst_points.dtype == np.float32, "src_points and dst_points must be of type np.float32."
+
+            # Calculate the perspective transform matrix
+            matrix = cv2.getPerspectiveTransform(src_points, dst_points)
+
+            # Apply the perspective transform to the image
+            transformed_image = cv2.warpPerspective(image, matrix, (w, h))
+
+            # Check if all the transformed shapes' points are within the image bounds
+            all_points_within_bounds = True
+            for shape in data['shapes']:
+                transformed_points = self.perspective_transform_coordinates(shape['points'], matrix)
+                if not self.are_points_within_image_bounds(transformed_points, w, h):
+                    all_points_within_bounds = False
+                    break
+
+            if all_points_within_bounds:
+                # All points are within the image, proceed with transformation
+                break
+        else:
+            # If no valid transform is found, skip processing
+            print("Failed to find a valid perspective transform within the maximum number of attempts.")
+            return
+
+        # Apply the perspective transform to each point in the JSON annotations
+        transformed_shapes = []
+        for shape in data['shapes']:
+            transformed_points = self.perspective_transform_coordinates(shape['points'], matrix)
+            transformed_shapes.append({
+                'label': shape['label'],
+                'points': transformed_points,
+                'group_id': shape.get('group_id'),
+                'description': shape.get('description', ''),
+                'shape_type': shape['shape_type'],
+                'flags': shape.get('flags', {})
+            })
+
+        # Save the transformed image
+        cv2.imwrite(dst_image_path, transformed_image)
+
+        # Update JSON data
+        new_data = {
+            "version": data["version"],
+            "flags": data["flags"],
+            "shapes": transformed_shapes,
+            "imagePath": os.path.basename(dst_image_path),
+            "imageData": data.get("imageData", ""),
+            "imageHeight": transformed_image.shape[0],
+            "imageWidth": transformed_image.shape[1],
+            'imageData': None
+        }
+
+        with open(dst_json_path, 'w') as f:
+            json.dump(new_data, f, indent=4)
+
+    def perspective_transform_coordinates(self, points, matrix):
+        # Convert the points to a NumPy array and apply the perspective transform
+        points = np.array(points, dtype=np.float32)
+        points = np.array([points])
+        transformed_points = cv2.perspectiveTransform(points, matrix)[0]
+        return transformed_points.tolist()
+
+    def are_points_within_image_bounds(self, points, img_width, img_height):
+        # Check if all points are within the image boundaries
+        points = np.array(points)
+        return np.all(points[:, 0] >= 0) and np.all(points[:, 0] < img_width) and np.all(points[:, 1] >= 0) and np.all(
+            points[:, 1] < img_height)
+
     def rotate_segmentation(self,src_path,dst_path,angles):
         ext = FileUtility.compare_extension_counts(src_path,'json','xml')
 
@@ -218,6 +320,36 @@ class YoloAugmentDB:
                     continue
                 self.rotate_image_and_lableme_json(src_image_filename,src_json_filename,dst_path,angle)
 
+    def prespective_segmentation(self,src_path,dst_path,count =4):
+        ext = FileUtility.compare_extension_counts(src_path,'json','xml')
+
+        if ext != 'json':
+            return
+
+
+        src_image_filenames = FileUtility.getFolderImageFiles(src_path)
+        src_json_filenames = FileUtility.changeFilesExt(src_image_filenames,ext)
+
+
+
+
+        for i in tqdm(range(len(src_image_filenames))):
+            FileUtility.copy2Path(src_image_filenames[i],dst_path)
+            FileUtility.copy2Path(src_json_filenames[i],dst_path)
+
+            for j in range(count):
+                src_image_filename = src_image_filenames[i]
+                src_json_filename = src_json_filenames[i]
+
+                dst_image_filename = FileUtility.getDstFilename2(src_image_filename,dst_path,src_path)
+                dst_json_filename = FileUtility.getDstFilename2(src_json_filename, dst_path, src_path)
+
+                dst_image_filename = FileUtility.changeFilenamePostfix(dst_image_filename,str(j))
+                dst_json_filename = FileUtility.changeFilenamePostfix(dst_json_filename, str(j))
+
+                if not os.path.exists(src_json_filename):
+                    continue
+                self.random_perspective_transform_image_and_labelme_json(src_image_filename,src_json_filename,dst_image_filename,dst_json_filename)
 
 def augment_db_rotate_proc():
     src_path = r'D:\database\FridgeEye\json_db'
@@ -232,6 +364,15 @@ def test_rotate_segmentation():
     angles =[90,180,270]
     augmntor = AugmentDB()
     augmntor.rotate_segmentation(src_path,dst_path,angles)
+
+
+def test_prespective_segmentation():
+    src_path = r'D:\database\snapp\train_segmentation\DB\all\total'
+    dst_path = r'D:\database\snapp\train_segmentation\DB\all\prespective'
+    count = 4
+    augmntor = AugmentDB()
+    augmntor.prespective_segmentation(src_path,dst_path,count)
+
 
 if __name__ == '__main__':
     # augment_db_rotate_proc()
