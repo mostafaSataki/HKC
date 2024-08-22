@@ -305,8 +305,9 @@ class YoloUtility:
         inf.inference(src_filename,dst_filename)
     
     @staticmethod
-    def inference_segment_dir(  model_filename: str, labels_file: str, src_dir: str, dst_dir: str):
-        inf = YoloInference(model_filename, labels_file)
+    def inference_segment_dir(  model_filename: str, labels_file: str, src_dir: str, dst_dir: str,
+                                draw = True,save_json = False,is_rect_contour = False, min_area_cofi = None):
+        inf = YoloInference(model_filename, labels_file,draw,save_json,is_rect_contour,min_area_cofi)
         inf.inference_dir(src_dir,dst_dir)
         
         
