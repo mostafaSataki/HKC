@@ -10,6 +10,21 @@ class YoloAugmentDB:
     def __init__(self):
         pass
 
+    def is_labelme_json_empty(self,source_json_path):
+
+        try:
+            with open(source_json_path, 'r') as f:
+                data = json.load(f)
+
+            # Check if 'shapes' key exists and is empty
+            if 'shapes' not in data or not data['shapes']:
+                return True
+            return False
+        except (IOError, json.JSONDecodeError) as e:
+            # Print the error message (optional) and return True
+            print(f"Error reading or parsing JSON file: {e}")
+            return True
+
     def augment_rotate(self,src_path:str,dst_path:str,generate_count:int,start_angle:float,end_angle:float):
         src_image_filenames = FileUtility.getFolderImageFiles(src_path)
         src_json_filenames = FileUtility.changeFilesExt(src_image_filenames,'json')
@@ -313,9 +328,15 @@ class YoloAugmentDB:
             FileUtility.copy2Path(src_image_filenames[i],dst_path)
             FileUtility.copy2Path(src_json_filenames[i],dst_path)
 
+
+
             for angle in angles:
                 src_image_filename = src_image_filenames[i]
                 src_json_filename = src_json_filenames[i]
+
+                if self.is_labelme_json_empty(src_json_filename):
+                    continue
+                    
                 if not os.path.exists(src_json_filename):
                     continue
                 self.rotate_image_and_lableme_json(src_image_filename,src_json_filename,dst_path,angle)
@@ -338,8 +359,12 @@ class YoloAugmentDB:
             FileUtility.copy2Path(src_json_filenames[i],dst_path)
 
             for j in range(count):
+
                 src_image_filename = src_image_filenames[i]
                 src_json_filename = src_json_filenames[i]
+
+                if self.is_labelme_json_empty(src_json_filename):
+                    continue
 
                 dst_image_filename = FileUtility.getDstFilename2(src_image_filename,dst_path,src_path)
                 dst_json_filename = FileUtility.getDstFilename2(src_json_filename, dst_path, src_path)
