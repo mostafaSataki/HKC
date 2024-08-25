@@ -336,7 +336,7 @@ class YoloAugmentDB:
 
                 if self.is_labelme_json_empty(src_json_filename):
                     continue
-                    
+
                 if not os.path.exists(src_json_filename):
                     continue
                 self.rotate_image_and_lableme_json(src_image_filename,src_json_filename,dst_path,angle)

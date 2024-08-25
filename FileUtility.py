@@ -183,14 +183,21 @@ class FileUtility:
     return  [f for f in listdir(path) if isfile(join(path, f))]
 
 
+  @staticmethod
+  def hasPostfix(filename,postfix):
+    tokens = FileUtility.getFileTokens(filename)
+    return tokens[1].endswith(postfix)
 
   @staticmethod
-  def getFolderImageFiles(path):
+  def getFolderImageFiles(path,postfix = None):
     result = []
     for (dirpath, dirnames, filenames) in os.walk(path):
       for filename in filenames:
         if FileUtility.checkIsImage(filename):
-          result.append(os.path.join(dirpath, filename))
+            if postfix is not None :
+                if FileUtility.hasPostfix(filename,postfix):
+                   result.append(os.path.join(dirpath, filename))
+            else :result.append(os.path.join(dirpath, filename))
 
     return result
 

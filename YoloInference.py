@@ -8,12 +8,13 @@ from ultralytics import YOLO
 
 class YoloInference:
     def __init__(self, model_filename: str, labels_file: str,draw = True,save_json = False,
-                 is_rect_contour = False, min_area_cofi = None):
+                 is_rect_contour = False, min_area_cofi = None,crop_size = None):
         self.model = YOLO(model_filename)
         self.labels, self.colors = self._load_labels_and_colors(labels_file)
         self.draw = draw
         self.save_json = save_json
         self.labelme_json  = LabelmeJson()
+        self.crop_size = crop_size
         self.segment_utilty =  YoloSegmentUtility(self.labels,is_rect_contour,min_area_cofi)
 
 
