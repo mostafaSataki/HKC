@@ -12,6 +12,8 @@ from  .Utility import *
 from multiprocessing import Pool
 from PIL import Image, ImageSequence
 import imutils
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
  
 class CvUtility:
 
@@ -315,21 +317,27 @@ class CvUtility:
 
   @staticmethod
   def resizeBatch(src_path,dst_path,dst_size, interpolation=None,jpeg_quality = 30):
-
-
+    # Get the list of source files
     src_files = FileUtility.getFolderImageFiles(src_path)
-    if src_path != dst_path :
+
+    # If source and destination paths differ, create the destination folder and copy subfolders
+    if src_path != dst_path:
       FileUtility.create_folder_if_not_exists(dst_path)
-      FileUtility.copyFullSubFolders(src_path,dst_path   )
+      FileUtility.copyFullSubFolders(src_path, dst_path)
 
-    dst_files = FileUtility.getDstFilenames2(src_files,dst_path,src_path )
+    # Get the list of destination files
+    dst_files = FileUtility.getDstFilenames2(src_files, dst_path, src_path)
 
-    for i in tqdm(range(len(src_files)), ncols=100):
-      src_file = src_files[i]
-      dst_file = dst_files[i]
+    def process_image(src_file, dst_file):
       src_image = cv2.imread(src_file)
-      dst_image = cv2.resize(src_image, dst_size,interpolation)
-      cv2.imwrite(dst_file,dst_image,[cv2.IMWRITE_JPEG_QUALITY,jpeg_quality])
+      dst_image = cv2.resize(src_image, dst_size, interpolation)
+      cv2.imwrite(dst_file, dst_image, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
+
+    with ThreadPoolExecutor() as executor:
+      futures = [executor.submit(process_image, src_files[i], dst_files[i]) for i in range(len(src_files))]
+
+      for _ in tqdm(as_completed(futures), total=len(futures), ncols=100, desc="Batch Resizing"):
+        pass
 
   @staticmethod
   def resize(src_path,dst_path,dst_size,coefficient =None, post_fix = "",jpeg_quality = 70):
@@ -990,6 +998,12 @@ class CvUtility:
     return c
 
   @staticmethod
+  def saveImagesFilename(filenames,images):
+    with ThreadPoolExecutor() as executor:
+      list(tqdm(executor.map(cv2.imwrite, filenames, images), total=len(images)), ncols=100, desc="Batch Rotation")
+
+
+  @staticmethod
   def mean_point(pnt1,pnt2):
     return [int( (pnt2[0] + pnt1[0])  /2),int((pnt2[1] + pnt1[1]) /2)]
 
@@ -1118,11 +1132,19 @@ class CvUtility:
   @staticmethod
   def rotate_image_batch(src_path,dst_path,angle):
     src_files = FileUtility.getFolderImageFiles(src_path)
-    dst_files = FileUtility.getDstFilenames2(src_files,dst_path,src_path)
-    for i in tqdm(range(len(src_files)), ncols=100):
-      src_image = cv2.imread(src_files[i])
-      dst_image =  CvUtility.rotate_image(src_image,angle)
-      cv2.imwrite(dst_files[i],dst_image)
+    dst_files = FileUtility.getDstFilenames2(src_files, dst_path, src_path)
+
+    def process_image(src_file, dst_file):
+      src_image = cv2.imread(src_file)
+      dst_image = CvUtility.rotate_image(src_image, angle)
+      cv2.imwrite(dst_file, dst_image)
+
+    with ThreadPoolExecutor() as executor:
+      futures = [executor.submit(process_image, src_files[i], dst_files[i]) for i in range(len(src_files))]
+
+      for _ in tqdm(as_completed(futures), total=len(futures), ncols=100, desc="Batch Rotation"):
+        pass
+
 
   @staticmethod
   def rotate_image_batchs(src_path, dst_path, angles):
@@ -1265,7 +1287,7 @@ class CvUtility:
     if len(contour) != 4:
       return []
 
-    # result = CvUtility.put_left_top_in_first(result)
+
 
     dist1 = np.linalg.norm(result[1] - result[0])
     dist2 = np.linalg.norm(result[2] - result[1])
@@ -1319,10 +1341,10 @@ class CvUtility:
     if contour.shape != (4,1,2):
       return None
     dst = np.array([
+      [dst_size[0], dst_size[1]],
+      [0, dst_size[1]],
       [0, 0],
       [dst_size[0], 0],
-      [dst_size[0], dst_size[1]],
-      [0, dst_size[1]]
     ], dtype=np.float32)
 
     transform = cv2.getPerspectiveTransform(contour, dst)

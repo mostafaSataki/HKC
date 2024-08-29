@@ -26,11 +26,11 @@ class YoloSegmentUtility:
             else: return None
 
 
-    def get_contours(self,yolo_results,image):
+    def get_segment_data(self, yolo_results, image):
         original_height, original_width = image.shape[:2]
-        min_contour_area = 1
+
         if self.min_area_cofi is not None:
-            min_contour_area = original_width * original_height / min_area_cofi
+            min_contour_area = original_width * original_height *  self.min_area_cofi
 
         result = []
         for yolo_result in yolo_results:
@@ -45,10 +45,11 @@ class YoloSegmentUtility:
                 mask = self._preprocess_mask(mask,original_width,original_height)
                 contour = self._find_valid_contour(mask,min_contour_area)
                 if self.is_rect_contour and contour is not None:
-                    contour = CvUtility.approximate_rect_contour(contour)
-
-                if contour is not None:
-                    result.append((contour,class_name))
+                    approx_contour = CvUtility.approximate_rect_contour(contour)
+                    if approx_contour is not None:
+                        contour_dim = CvUtility.get_rect_contour_dimension(approx_contour)
+                        reg_image = CvUtility.rectify_rect_image(image, approx_contour, contour_dim)
+                        result.append((reg_image, class_name,approx_contour))
                         
         return result
 

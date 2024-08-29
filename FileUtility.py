@@ -97,6 +97,16 @@ class FileUtility:
     return result
 
   @staticmethod
+  def getLabelsIndex(labels):
+    unique_labels = list(set(labels))
+    label_to_index = {label: idx for idx, label in enumerate(unique_labels)}
+
+
+    indexed_labels = [label_to_index[label] for label in labels]
+
+    return label_to_index,indexed_labels
+
+  @staticmethod
   def getFilesUniqueLabels(filesnames):
     labels = FileUtility.getFilesLabel(filesnames)
     labels = list(set(labels))
@@ -500,7 +510,20 @@ class FileUtility:
     return result
 
   @staticmethod
-  def getDstFilenames2(src_filenames, dst_path,src_path = None, copy_to_root = False,dst_extension = None):
+  def getDstFilenamesToBranch(src_filenames,ids, dst_path,src_path = None, dst_extension = None):
+    result = []
+    for src_filename in src_filenames:
+      dst_filename = FileUtility.getDstFilename2(src_filename,dst_path,src_path,copy_to_root,dst_extension)
+      tokens = FileUtility.getFileTokens(dst_filename)
+      cur_dst_path = os.path.join(tokens[0],str(ids[i]))
+      dst_filename = os.path.join(cur_dst_path,tokens[1]+tokens[2])
+      result.append(dst_filename)
+
+    return result
+
+
+  @staticmethod
+  def getDstFilenames2(src_filenames, dst_path,src_path = None, dst_extension = None):
     result = []
     for src_filename in src_filenames:
       result.append(FileUtility.getDstFilename2(src_filename,dst_path,src_path,copy_to_root,dst_extension))

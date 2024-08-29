@@ -19,7 +19,7 @@ from .CvUtility import *
 
 class TrainUtility:
     @staticmethod
-    def split_data(src_dir,dst_dir,valid_per=0.2,test_per=0):
+    def split_data(src_dir, dst_dir, valid_per=0.2, test_per=0):
         branches = ['train', 'val', 'test']
         FileUtility.createClearFolder(dst_dir)
         train_per = 1 - valid_per - test_per
@@ -28,26 +28,24 @@ class TrainUtility:
         if test_per != 0:
             pers.append(test_per)
 
-
-        # create dst folders
+        # Create destination folders
         class_names = FileUtility.getSubfolders(src_dir)
         for i in range(len(pers)):
             dst_branch = os.path.join(dst_dir, branches[i])
             FileUtility.createClearFolder(dst_branch)
             FileUtility.createSubfolders(dst_branch, class_names)
 
-        for k in tqdm(range(len(class_names)), ncols=100):
-            class_name = class_names[k]
+        def process_class(class_name):
             src_class_path = os.path.join(src_dir, class_name)
             src_class_files = FileUtility.getFolderImageFiles(src_class_path)
             count = len(src_class_files)
-            indexs = [i for i in range(0, count)]
+            indexs = [i for i in range(count)]
             random.shuffle(indexs)
             start = 0
+
             for i in range(len(pers)):
                 branch = branches[i]
                 per = pers[i]
-
                 dst_branch_path = os.path.join(dst_dir, branch)
                 dst_class_path = os.path.join(dst_branch_path, class_name)
 
@@ -57,6 +55,11 @@ class TrainUtility:
                     dst_file = FileUtility.getDstFilename2(src_file, dst_class_path, src_class_path, True)
                     FileUtility.copyFile(src_file, dst_file)
                 start += branch_count
+
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(process_class, class_name) for class_name in class_names]
+            for _ in tqdm(as_completed(futures), total=len(futures), ncols=100, desc="Splitting Data"):
+                pass
 
 
 

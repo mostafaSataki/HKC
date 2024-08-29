@@ -9,7 +9,7 @@ class LabelmeJson:
         image_height, image_width = image.shape[:2]
         shapes = []
         for result in results:
-            contour = result[0]
+            contour = result[2]
             label = result[1]
 
             contour = np.array(contour).squeeze().tolist()
