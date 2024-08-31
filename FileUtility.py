@@ -27,7 +27,10 @@ import platform
 from pathlib import Path
 from .Utility import *
 from collections import defaultdict
-
+from concurrent.futures import ThreadPoolExecutor
+from typing import List
+from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class MediaType(Enum):
   folder = 1
@@ -197,6 +200,34 @@ class FileUtility:
   def hasPostfix(filename,postfix):
     tokens = FileUtility.getFileTokens(filename)
     return tokens[1].endswith(postfix)
+
+  @staticmethod
+  def getFilenamePostfix(filename):
+    fname = FileUtility.getFilenameWithoutExt(filename)
+    parts = fname.split('_')
+    if len(parts) <= 1:
+      return None
+    else : return parts[-1]
+
+  @staticmethod
+  def getFolderPostfix(src_dir):
+    filenames = FileUtility.getFolderFiles(src_dir)
+    postfixes = []
+    for filename in filenames:
+      postfix = FileUtility.getFilenamePostfix(filename)
+      if postfix is not None:
+        postfixes.append(postfix)
+
+    if len(postfixes) == 0:
+      return None
+    # Count the frequency of each postfix
+    postfix_counter = Counter(postfixes)
+
+    # Find the most common postfix
+    most_common_postfix, count = postfix_counter.most_common(1)[0]
+    return most_common_postfix
+
+    
 
   @staticmethod
   def getFolderImageFiles(path,postfix = None):
@@ -454,10 +485,12 @@ class FileUtility:
 
   @staticmethod
   def copyFilesByName(src_filenames,dst_filenames):
-    for i in tqdm(range(len(src_filenames)), ncols=100):
-      if src_filenames[i] != dst_filenames[i]:
-        if os.path.exists(src_filenames[i]):
-          shutil.copyfile(src_filenames[i], dst_filenames[i])
+    def copy_file(src,dst):
+      if src != dst and os.path.exists(src):
+        shutil.copyfile(src, dst)
+    with ThreadPoolExecutor() as executor:
+      list(tqdm(executor.map(copy_file,src_filenames,dst_filenames),total=len(src_filenames), ncols=100, desc='Copy Files'))
+
 
   @staticmethod
   def copyFiles2DstPath(src_filenames,dst_path,src_path=None):
@@ -631,6 +664,14 @@ class FileUtility:
   def addPostfix2File(file_name, token):
     tokens = FileUtility.getFileTokens(file_name)
     return os.path.join(tokens[0], tokens[1] + token + tokens[2])
+
+  @staticmethod
+  def addPostfix2Files(filenames,token):
+      result_files = []
+      for filename in filenames:
+        result_files.append( FileUtility.process_file(filename))
+
+      return result_files
 
   @staticmethod
   def makeFoldersBranch(dst_path, branchs, clear=False):
@@ -993,6 +1034,50 @@ class FileUtility:
     return result
 
   @staticmethod
+  def removeFilenamePostfix(filename:str,postfix:str = None):
+      tokens = FileUtility.getFileTokens(filename)
+      if postfix is not None and tokens[1].endswith(postfix) :
+        new_fname = tokens[1][:-len(postfix)]
+      else :  new_fname = tokens[1]
+      return os.path.join( tokens[0]+ new_fname+tokens[2])
+
+  @staticmethod
+  def removeFilenamesPostfix(filenames:List[str],postfix:str = None):
+      new_filenames = []
+      for filename in filenames:
+        new_filenames.append(FileUtility.removeFilename(filename,postfix))
+
+      return new_filenames
+
+  @staticmethod
+  def filenameToKey(filename:str,postfix:str = None):
+    tokens = FileUtility.getFileTokens(filename)
+    if postfix is not None and tokens[1].endswith(postfix):
+      new_fname = tokens[1][:-len(postfix)]
+    else:
+      new_fname = tokens[1]
+    return  new_fname
+
+  @staticmethod
+  def filenamesToKeys(filenames:List[str],postfix:str =None):
+    keys = []
+    for filename in filenames:
+      keys.append(FileUtility.filenameToKey(filename,postfix))
+
+    return keys
+
+
+  @staticmethod
+  def getKeySets(src_keys, dst_keys):
+      src_set = set(src_keys)
+      dst_set = set(dst_keys)
+      shared_keys = src_set.intersection(dst_set)
+      unique_src = src_set.difference(dst_set)
+      unique_dst = dst_set.difference(src_set)
+      return shared_keys, unique_src, unique_dst
+
+
+  @staticmethod
   def changeFilesnamePrefix(files,pretfix):
     result = []
 
@@ -1106,6 +1191,81 @@ class FileUtility:
           new_src_files = random.sample(src_files, count)
           dst_files = FileUtility.getDstFilenames2(new_src_files, src_path, dst_path, True)
           FileUtility.copyFilesByName(new_src_files, dst_files)
+
+  @staticmethod
+  def getFilesKeyInfo(src1_dir:str, src2_dir:str,src1_postfix:str = None, src2_postfix:str=None,exclude_keys =None):
+    src1_files = FileUtility.getFolderImageFiles(src1_dir, src1_postfix)
+    src2_files = FileUtility.getFolderImageFiles(src2_dir, src2_postfix)
+
+    src1_keys = FileUtility.filenamesToKeys(src1_files, src1_postfix)
+    src2_keys = FileUtility.filenamesToKeys(src2_files, src2_postfix)
+
+    src1_dict = dict(zip(src1_keys, src1_files))
+    src2_dict = dict(zip(src2_keys, src2_files))
+
+    shared_keys, unique_src1, unique_src2 = FileUtility.getKeySets(src1_keys, src2_keys)
+
+    if exclude_keys is not None:
+      Utility.remove_items(shared_keys,exclude_keys)
+      Utility.remove_items(unique_src1, exclude_keys)
+      Utility.remove_items(unique_src2, exclude_keys)
+
+    return src1_dict,src2_dict,shared_keys, unique_src1, unique_src2
+
+  @staticmethod
+  def copyImagePairs(src1_dir: str, src2_dir: str, dst1_dir: str, dst2_dir: str, count: int,
+                     src1_postfix: str = None, src2_postfix: str = None):
+
+      def copy_files(key, src1_dict, src2_dict, dst1_dir, dst2_dir):
+          src1_filename = src1_dict.get(key)
+          src2_filename = src2_dict.get(key)
+
+          FileUtility.copy2Path(src1_filename, dst1_dir)
+          FileUtility.copy2Path(src2_filename, dst2_dir)
+
+      # Retrieve file info and keys
+      (src1_dict, src2_dict, shared_keys, unique_src1,
+       unique_src2) = FileUtility.getFilesKeyInfo(src1_dir, src2_dir, src1_postfix, src2_postfix)
+
+      # Select a random subset of keys
+      selected_keys = random.sample(shared_keys, count)
+
+      # Clear destination directories
+      FileUtility.createClearFolder(dst1_dir)
+      FileUtility.createClearFolder(dst2_dir)
+
+      # Define the maximum number of threads
+      max_workers = 8  # Adjust based on your system's capabilities
+
+      # Use ThreadPoolExecutor to copy files in parallel
+      with ThreadPoolExecutor(max_workers=max_workers) as executor:
+          futures = {executor.submit(copy_files, key, src1_dict, src2_dict, dst1_dir, dst2_dir): key for key in
+                     selected_keys}
+
+          # Use tqdm to show progress
+          for _ in tqdm(as_completed(futures), total=len(futures)):
+              pass
+
+  @staticmethod
+  def copyImagePairs2(src_dir: str, dst_dir: str,  count: int):
+      src_branchs = FileUtility.getSubfolders(src_dir)
+      if len(src_branchs) != 2:
+        return 
+      
+      src1_dir = os.path.join(src_dir,src_branchs[0])
+      src2_dir = os.path.join(src_dir, src_branchs[1])
+      
+      dst1_dir = os.path.join(dst_dir,src_branchs[0])
+      dst2_dir = os.path.join(dst_dir, src_branchs[1])
+      
+      postfix1 = FileUtility.getFolderPostfix(src1_dir)
+      postfix2 = FileUtility.getFolderPostfix(src2_dir)
+      
+      FileUtility.copyImagePairs(src1_dir,src2_dir,dst1_dir,dst2_dir,count,postfix1,postfix2)
+      
+
+
+
 
 
   @staticmethod

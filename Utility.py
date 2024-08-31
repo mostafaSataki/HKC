@@ -267,7 +267,9 @@ class Utility:
        result.append( itemgetter(*l3)(src_list))
     return result
 
-
+  @staticmethod
+  def remove_items(list1, list2):
+    return [item for item in list1 if item not in list2]
 
 
 

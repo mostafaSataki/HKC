@@ -60,6 +60,16 @@ class CvUtility:
       return image
 
   @staticmethod
+  def loadImage2(filename:str,flags:int = 1):
+    image = cv2.imread(filename, flags)
+
+    if image is None:
+      raise ImageNotLoadedException(dl_filename)
+
+    return image
+
+
+  @staticmethod
   def imwriteU(filename,image, params=None):
     is_success, im_buf_arr = cv2.imencode(".jpg", image,params)
     im_buf_arr.tofile(filename)
