@@ -132,7 +132,7 @@ class CvUtility:
 
   @staticmethod
   def getImageSize(src):
-    return [src.shape[0], src.shape[1]]
+    return ( src.shape[1],src.shape[0])
 
 
   @staticmethod
@@ -1009,8 +1009,8 @@ class CvUtility:
 
   @staticmethod
   def saveImagesFilename(filenames,images):
-    with ThreadPoolExecutor() as executor:
-      list(tqdm(executor.map(cv2.imwrite, filenames, images), total=len(images)), ncols=100, desc="Batch Rotation")
+    for filename,image in zip(filenames,images):
+        cv2.imwrite(filename,image)
 
 
   @staticmethod
@@ -1394,6 +1394,31 @@ class CvUtility:
     if len(approx) != 4:
       None
     return approx
+
+  @staticmethod
+  def getImageAspectRatio(image):
+    height, width = image.shape[:2]
+    aspect_ratio = width / height
+    return aspect_ratio
+
+  @staticmethod
+  def getFolderImageSize(src_dir):
+    files = FileUtility.getFolderImageFiles(src_dir)
+    for file in files:
+          try:
+             image = CvUtility.loadImage2(file)
+             size = CvUtility.getImageSize(image)
+             if size == (0,0):
+               continue
+             else :
+               return size
+          except ImageNotLoadedException as e:
+            continue
+
+    return None
+
+
+
 
  
     

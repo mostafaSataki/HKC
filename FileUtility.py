@@ -202,7 +202,7 @@ class FileUtility:
     return tokens[1].endswith(postfix)
 
   @staticmethod
-  def getFilenamePostfix(filename):
+  def getFilenameLastPostfix(filename):
     fname = FileUtility.getFilenameWithoutExt(filename)
     parts = fname.split('_')
     if len(parts) <= 1:
@@ -210,11 +210,21 @@ class FileUtility:
     else : return parts[-1]
 
   @staticmethod
+  def getFilenameFirstPostfix(filename):
+    fname = FileUtility.getFilenameWithoutExt(filename)
+    parts = fname.split('_')
+    if len(parts) < 1:
+      return None
+    else : return parts[0]
+      
+    
+
+  @staticmethod
   def getFolderPostfix(src_dir):
     filenames = FileUtility.getFolderFiles(src_dir)
     postfixes = []
     for filename in filenames:
-      postfix = FileUtility.getFilenamePostfix(filename)
+      postfix = FileUtility.getFilenameLastPostfix(filename)
       if postfix is not None:
         postfixes.append(postfix)
 
@@ -545,8 +555,8 @@ class FileUtility:
   @staticmethod
   def getDstFilenamesToBranch(src_filenames,ids, dst_path,src_path = None, dst_extension = None):
     result = []
-    for src_filename in src_filenames:
-      dst_filename = FileUtility.getDstFilename2(src_filename,dst_path,src_path,copy_to_root,dst_extension)
+    for i,src_filename in enumerate(src_filenames):
+      dst_filename = FileUtility.getDstFilename2(src_filename,dst_path,src_path,True,dst_extension)
       tokens = FileUtility.getFileTokens(dst_filename)
       cur_dst_path = os.path.join(tokens[0],str(ids[i]))
       dst_filename = os.path.join(cur_dst_path,tokens[1]+tokens[2])
@@ -559,7 +569,7 @@ class FileUtility:
   def getDstFilenames2(src_filenames, dst_path,src_path = None, dst_extension = None):
     result = []
     for src_filename in src_filenames:
-      result.append(FileUtility.getDstFilename2(src_filename,dst_path,src_path,copy_to_root,dst_extension))
+      result.append(FileUtility.getDstFilename2(src_filename,dst_path,src_path,True,dst_extension))
 
     return result
 
@@ -669,7 +679,7 @@ class FileUtility:
   def addPostfix2Files(filenames,token):
       result_files = []
       for filename in filenames:
-        result_files.append( FileUtility.process_file(filename))
+        result_files.append( FileUtility.addPostfix2File(filename,token))
 
       return result_files
 
@@ -833,6 +843,8 @@ class FileUtility:
   def copy_subfolders(src_path,dst_path):
       sub_folders = FileUtility.getSubfolders(src_path)
       FileUtility.createSubfolders(dst_path,sub_folders)
+      
+      return sub_folders
 
 
   @staticmethod
@@ -1033,13 +1045,15 @@ class FileUtility:
 
     return result
 
+
+
   @staticmethod
-  def removeFilenamePostfix(filename:str,postfix:str = None):
+  def removePostfixFromFilename(filename,postfix):
       tokens = FileUtility.getFileTokens(filename)
-      if postfix is not None and tokens[1].endswith(postfix) :
-        new_fname = tokens[1][:-len(postfix)]
-      else :  new_fname = tokens[1]
-      return os.path.join( tokens[0]+ new_fname+tokens[2])
+      fname = tokens[1]
+      if fname.endswith(postfix):
+        fname = fname[:-len(postfix)]
+      return os.path.join(tokens[0], fname +tokens[2])
 
   @staticmethod
   def removeFilenamesPostfix(filenames:List[str],postfix:str = None):
@@ -1048,6 +1062,56 @@ class FileUtility:
         new_filenames.append(FileUtility.removeFilename(filename,postfix))
 
       return new_filenames
+
+  @staticmethod
+  def removeFilenamesPostfix(filenames: List[str], postfix: str = None):
+    new_filenames = []
+    for filename in filenames:
+      new_filenames.append(FileUtility.removeFilenamesPostfix(filename, postfix))
+
+    return new_filenames
+
+  @staticmethod
+  def removeLastPostfix(my_str:str):
+      postfix = FileUtility.getFilenamePostfix(my_str)
+      if postfix is not None:
+         postfix = "_"+postfix
+         my_str = FileUtility.removePostfixFromFilename(my_str, postfix)
+      return my_str
+
+  @staticmethod
+  def removeListLastPostfix(list1:List[str]):
+      result = []
+      for my_str in tqdm(list1):
+         result.append(FileUtility.removeFilenameLastPostfixStr(my_str))
+
+      return result
+
+  @staticmethod
+  def removeFilenameLastPostfix(filename: str):
+      new_filename = FileUtility.removeLastPostfix(filename)
+      os.rename(filename,new_filename)
+
+      return new_filename
+
+
+  @staticmethod
+  def removeFilenamesLastPostfix(filenames: List[str]):
+    result = []
+    for filename in tqdm(filenames):
+      result.append(FileUtility.removeFilenameLastPostfix(filename))
+
+    return result
+
+  @staticmethod
+  def removeDirLastPostfix(src_dir :str):
+
+    filenames = FileUtility.getFolderImageFiles(src_dir)
+    return FileUtility.removeFilenamesLastPostfix(filenames)
+
+
+
+
 
   @staticmethod
   def filenameToKey(filename:str,postfix:str = None):
@@ -1247,7 +1311,7 @@ class FileUtility:
               pass
 
   @staticmethod
-  def copyImagePairs2(src_dir: str, dst_dir: str,  count: int):
+  def copyImagePairs2(src_dir: str, dst_dir: str,  count: int,separate_branch=True):
       src_branchs = FileUtility.getSubfolders(src_dir)
       if len(src_branchs) != 2:
         return 
@@ -1262,6 +1326,43 @@ class FileUtility:
       postfix2 = FileUtility.getFolderPostfix(src2_dir)
       
       FileUtility.copyImagePairs(src1_dir,src2_dir,dst1_dir,dst2_dir,count,postfix1,postfix2)
+
+  @staticmethod
+  def copyImagePairesToBranch(src_dir: str, dst_dir: str,branchs: List[str]):
+      branch_files = []
+      for branch in branchs:
+        branch_files.append( FileUtility.getFolderImageFiles(src_dir,branch))
+          
+      FileUtility.createClearFolder(dst_dir)
+      branch_titles = []
+      for branch in branchs:
+        branch_titles.append( branch.lstrip('_'))
+
+      FileUtility.createSubfolders(dst_dir,branch_titles)
+      for i,branch in enumerate(branch_titles):
+        cur_dst_dir = os.path.join(dst_dir,branch)
+        FileUtility.copyFiles2DstPath(branch_files[i],cur_dst_dir)
+  @staticmethod
+  def splitImage2GalleryProbe(src_dir: str, dst_dir: str,probes_end:List[str]):
+      FileUtility.create_folder_if_not_exists(dst_dir)
+      gallery_dir = os.path.join(dst_dir,'gallery')
+      probe_dir = os.path.join(dst_dir, 'probe')
+
+      FileUtility.createSubfolders(dst_dir,['gallery','probe'])
+
+
+      src_filenames = FileUtility.getFolderImageFiles(src_dir)
+      for src_filename in tqdm(src_filenames,desc = "split images"):
+          last_postfix =  FileUtility.getFilenameLastPostfix(src_filename)
+          if last_postfix in probes_end:
+            cur_dst_dir = probe_dir
+          else:
+             cur_dst_dir = gallery_dir
+
+          FileUtility.copy2Path(src_filename,cur_dst_dir)
+
+
+
       
 
 
