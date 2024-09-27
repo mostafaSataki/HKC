@@ -1362,10 +1362,35 @@ class FileUtility:
       FileUtility.copyImagePairs(src1_dir,src2_dir,dst1_dir,dst2_dir,count,postfix1,postfix2)
 
   @staticmethod
+  def get_files_by_shared_prefix(filenames1,filenames2,count=0):
+      filenames1_key = FileUtility.getFilenamesFirstPostfix(filenames1)
+      keys1 = list( filenames1_key.keys())
+      filenames2_key = FileUtility.getFilenamesFirstPostfix(filenames2)
+      keys2 = list(filenames2_key.keys())
+
+      shared_keys = list(set(list1) & set(list2))
+      if count != 0:
+        shared_keys = shared_keys[:min(count,len(shared_keys))]
+
+      filenames1 = []
+      filenames2 = []
+
+      for shared_key in shared_keys:
+         filenames1.append(filenames1_key[shared_key])
+         filenames2.append(filenames2_key[shared_key])
+          
+      return filenames1,filenames2
+
+
+
+  @staticmethod
   def copyImagePairesToBranch(src_dir: str, dst_dir: str,branchs: List[str],count =0):
       branch_files = []
       for branch in branchs:
-        branch_files.append( FileUtility.getFolderImageFiles(src_dir,branch))
+          branch_files.append( FileUtility.getFolderImageFiles(src_dir,branch))
+
+      filenames1,filenames2 = FileUtility.get_files_by_shared_prefix(branch_files[0],branch_files[1],count)
+      branch_files = [filenames1,filenames2]
           
       FileUtility.create_folder_if_not_exists(dst_dir)
       branch_titles = []
