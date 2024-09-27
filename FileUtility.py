@@ -217,7 +217,39 @@ class FileUtility:
       return None
     else : return parts[0]
       
+  @staticmethod
+  def getFilenamesFirstPostfix(filenames,key_postfix = True):
+    result = {}
+    for filename in filenames:
+      postfix = FileUtility.getFilenameFirstPostfix(filename)
+      if key_postfix:
+        if postfix in result:
+          result[postfix].append(filename)  # If the postfix exists, append the filename to the list
+        else:
+          result[postfix] = [filename]  # If the postfix doesn't exist, create a new list with the filename
+      else :
+        if filename in result:
+          result[filename].append(postfix)  # If the filename exists, append the postfix to the list
+        else:
+          result[filename] = [postfix]
+    return result
+
+  @staticmethod
+  def getDirFirstPostfix(dir,key_postfix = True):
+      filenames = FileUtility.getFolderFiles(dir)
+      return FileUtility.getFilenamesFirstPostfix(filenames,key_postfix)
+
+
     
+      
+  @staticmethod
+  def getFilenameTokens(filename):
+    fname = FileUtility.getFilenameWithoutExt(filename)
+    parts = fname.split('_')
+    if len(parts) < 1:
+      return None
+    else : return parts
+
 
   @staticmethod
   def getFolderPostfix(src_dir):
@@ -496,6 +528,8 @@ class FileUtility:
   @staticmethod
   def copyFilesByName(src_filenames,dst_filenames):
     def copy_file(src,dst):
+      if os.path.exists(dst):
+        return
       if src != dst and os.path.exists(src):
         shutil.copyfile(src, dst)
     with ThreadPoolExecutor() as executor:
@@ -1328,12 +1362,12 @@ class FileUtility:
       FileUtility.copyImagePairs(src1_dir,src2_dir,dst1_dir,dst2_dir,count,postfix1,postfix2)
 
   @staticmethod
-  def copyImagePairesToBranch(src_dir: str, dst_dir: str,branchs: List[str]):
+  def copyImagePairesToBranch(src_dir: str, dst_dir: str,branchs: List[str],count =0):
       branch_files = []
       for branch in branchs:
         branch_files.append( FileUtility.getFolderImageFiles(src_dir,branch))
           
-      FileUtility.createClearFolder(dst_dir)
+      FileUtility.create_folder_if_not_exists(dst_dir)
       branch_titles = []
       for branch in branchs:
         branch_titles.append( branch.lstrip('_'))
@@ -1341,7 +1375,12 @@ class FileUtility:
       FileUtility.createSubfolders(dst_dir,branch_titles)
       for i,branch in enumerate(branch_titles):
         cur_dst_dir = os.path.join(dst_dir,branch)
-        FileUtility.copyFiles2DstPath(branch_files[i],cur_dst_dir)
+        files = branch_files[i]
+        if count != 0:
+          files = files[:min(count,len(files))]
+          
+        FileUtility.copyFiles2DstPath(files,cur_dst_dir)
+          
   @staticmethod
   def splitImage2GalleryProbe(src_dir: str, dst_dir: str,probes_end:List[str]):
       FileUtility.create_folder_if_not_exists(dst_dir)
@@ -1894,6 +1933,15 @@ class FileUtility:
         os.remove(src_file)
       else:
         os.rename(src_file, new_src_file)
+
+  @staticmethod
+  def has_folders_equal_files(dir1,dir2):
+    files1 = FileUtility.getFoldersFiles(dir1)
+    files1 = FileUtility.getFilenames(files1)
+
+    files2 = FileUtility.getFoldersFiles(dir2)
+    files2 = FileUtility.getFilenames(files2)
+    return sorted(files1) == sorted(files2)
 
 
 
