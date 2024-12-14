@@ -572,7 +572,7 @@ class FileUtility:
   @staticmethod
   def getDstFilename2(src_filename, dst_path,src_path = None, copy_to_root = False,dst_extension = None):
     if src_path is None:
-      src_path = FileUtility.get_parent_path(src_filename)
+      src_path = os.path.dirname(src_filename)
 
     if copy_to_root:
       tokens = FileUtility.getFileTokens(src_filename)
@@ -1368,7 +1368,7 @@ class FileUtility:
       filenames2_key = FileUtility.getFilenamesFirstPostfix(filenames2)
       keys2 = list(filenames2_key.keys())
 
-      shared_keys = list(set(list1) & set(list2))
+      shared_keys = list(set(keys1) & set(keys2))
       if count != 0:
         shared_keys = shared_keys[:min(count,len(shared_keys))]
 
@@ -1376,8 +1376,8 @@ class FileUtility:
       filenames2 = []
 
       for shared_key in shared_keys:
-         filenames1.append(filenames1_key[shared_key])
-         filenames2.append(filenames2_key[shared_key])
+         filenames1.append(filenames1_key[shared_key][0])
+         filenames2.append(filenames2_key[shared_key][0])
           
       return filenames1,filenames2
 
@@ -1918,18 +1918,26 @@ class FileUtility:
     return file_counts
 
   @staticmethod
-  def compare_extension_counts(folder_path,ext1,ext2):
+  def compare_extension_counts(folder_path,ext1,ext2,ext3):
     file_counts = FileUtility.count_files_by_extension(folder_path)
     ext1_count = file_counts.get(ext1, 0)
     ext2_count = file_counts.get(ext2, 0)
+    ext3_count = file_counts.get(ext3, 0)
 
-    if ext1_count > ext2_count:
-      return ext1
-    elif ext1_count < ext2_count:
-      return ext2
-    else:
+    # Find the maximum count
+    max_count = max(ext1_count, ext2_count, ext3_count)
+
+    # If all counts are zero or equal, return None
+    if max_count == 0 or len(set([ext1_count, ext2_count, ext3_count])) == 1:
       return None
 
+    # Return the extension with the maximum count
+    if max_count == ext1_count:
+      return ext1
+    elif max_count == ext2_count:
+      return ext2
+    else:
+      return ext3
   @staticmethod
   def copy_gt_file(src_dir, dst_dir, ext, prefix=None, postfix=None):
     src_filenames = FileUtility.getFolderFiles(src_dir, [ext])

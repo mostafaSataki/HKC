@@ -1292,6 +1292,12 @@ class CvUtility:
 
   @staticmethod
   def get_contour_in_direct( contour, direct):
+
+    if isinstance(contour, list):
+      contour = np.array(contour).reshape(-1, 2)
+    else:
+      contour = contour.reshape(-1, 2)
+
     result = contour[::-1]
 
     if len(contour) != 4:
@@ -1364,7 +1370,12 @@ class CvUtility:
 
   @staticmethod
   def get_rect_contour_dimension( approx_contour):
-    contour = approx_contour.reshape(-1, 2)
+    if isinstance(approx_contour, list):
+      contour = np.array(approx_contour).reshape(-1, 2)
+    else:
+      contour = approx_contour.reshape(-1, 2)
+
+
 
     # Extract x and y coordinates
     x_coords = contour[:, 0]
@@ -1384,16 +1395,113 @@ class CvUtility:
 
   @staticmethod
   def approximate_rect_contour( contour):
-    epsilon = 0.1
+    epsilon = 0.001
     while True:
       approx = cv2.approxPolyDP(contour, epsilon, True)
-      epsilon += 0.1
+      epsilon += 0.001
       if len(approx) <= 4:
         break
+
+
 
     if len(approx) != 4:
       None
     return approx
+
+  @staticmethod
+  def approx_to_quadrilateral(contour):
+    # Initial approximation
+    epsilon = 0.02 * cv2.arcLength(contour, True)
+    approx = cv2.approxPolyDP(contour, epsilon, True)
+
+    # If not 4 points, adjust epsilon
+    if len(approx) != 4:
+      epsilon_values = [0.01, 0.03, 0.04, 0.05]
+
+      for eps in epsilon_values:
+        approx = cv2.approxPolyDP(contour, eps * cv2.arcLength(contour, True), True)
+        if len(approx) == 4:
+          break
+
+      # If still not 4 points, use minimum area rectangle
+      if len(approx) != 4:
+        rect = cv2.minAreaRect(contour)
+        box = cv2.boxPoints(rect)
+        approx = np.int0(box)
+
+    return approx.reshape(-1, 2)
+
+  @staticmethod
+  def approx_to_quadrilateral2(points):
+    """
+    Fit lines to a pseudo-quadrilateral and find their intersection points (corners).
+
+    Args:
+    points (np.ndarray): Array of shape (n, 2) containing x,y coordinates
+
+    Returns:
+    list: List containing four corner points of the quadrilateral
+    """
+    # Ensure points is a numpy array and reshape if necessary
+    points = np.asarray(points).reshape(-1, 2)
+
+    # Handle cases with insufficient points
+    if len(points) < 4:
+      raise ValueError("Not enough points to determine quadrilateral")
+
+    x = points[:, 0]
+    y = points[:, 1]
+
+    # More robust line fitting using least squares with higher degree polynomial
+    def robust_line_fit(x_subset, y_subset, degree=1):
+      try:
+        # Use higher degree to improve fit if simple linear doesn't work
+        return np.polyfit(x_subset, y_subset, degree)
+      except np.linalg.LinAlgError:
+        # Fallback to mean if polyfit fails
+        slope = 0
+        intercept = np.mean(y_subset)
+        return [slope, intercept]
+
+    # Find extreme points more robustly
+    top_mask = y >= np.percentile(y, 90)
+    bottom_mask = y <= np.percentile(y, 10)
+    left_mask = x <= np.percentile(x, 10)
+    right_mask = x >= np.percentile(x, 90)
+
+    # Fit lines using robust method
+    top_line = robust_line_fit(x[top_mask], y[top_mask])
+    bottom_line = robust_line_fit(x[bottom_mask], y[bottom_mask])
+    left_line = robust_line_fit(y[left_mask], x[left_mask])[::-1]  # Swap for vertical line
+    right_line = robust_line_fit(y[right_mask], x[right_mask])[::-1]  # Swap for vertical line
+
+    def line_intersection(line1, line2):
+      """Calculate intersection of two lines given their coefficients."""
+      try:
+        x_intersect = (line2[1] - line1[1]) / (line1[0] - line2[0])
+        y_intersect = line1[0] * x_intersect + line1[1]
+        return [x_intersect, y_intersect]
+      except ZeroDivisionError:
+        # Handle parallel lines or lines with zero slope
+        return None
+
+    # Calculate corner points with error handling
+    try:
+      top_left = line_intersection(top_line, left_line)
+      top_right = line_intersection(top_line, right_line)
+      bottom_left = line_intersection(bottom_line, left_line)
+      bottom_right = line_intersection(bottom_line, right_line)
+
+      # Validate corner points
+      corners = [top_left, top_right, bottom_left, bottom_right]
+      if any(corner is None for corner in corners):
+        raise ValueError("Could not determine all corner points")
+
+      return corners
+    except Exception as e:
+      print(f"Error in determining quadrilateral corners: {e}")
+      return None
+
 
   @staticmethod
   def getImageAspectRatio(image):

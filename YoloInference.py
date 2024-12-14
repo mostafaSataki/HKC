@@ -84,22 +84,31 @@ class YoloInference:
         output = image.copy()
 
         for result in results:
-            contour = result[1]
-            label = result[2]
+            contour = result[3]
+            label = result[1]
+            conf = result[4]
             label_color = self._get_label_color(label)
 
             overlay = image.copy()
-            cv2.drawContours(overlay, [contour], 0, label_color, -1)
+            # Create a new color with the specified green intensity
+            # label_color2 = (b, 255, r)
+            cv2.drawContours(overlay, [contour], 0, (0,255,0), -1)
 
             # Blend the original image and the overlay
             output = cv2.addWeighted(overlay, alpha, output, 1 - alpha, 0)
 
-            # Draw bounding box
-            x1, y1, x2, y2 = map(int, box[:4])
-            cv2.rectangle(output, (x1, y1), (x2, y2), color, 2)
+            x, y, w, h = cv2.boundingRect(contour)
 
+            # Draw bounding box
+            # cv2.rectangle(output, (x, y), (x + w, y + h), label_color, 2)
             # Draw label
-            cv2.putText(output, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+            cv2.putText(output,str(conf), (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, label_color, 2)
+            #
+            # b, g, r = label_color
+
+
+
+
 
         return output
     
@@ -143,7 +152,7 @@ class YoloInference:
 
     def inference_dir(self, src_path: str, dst_path: str):
         src_image_filenames = FileUtility.getFolderImageFiles(src_path)
-        dst_image_filenames = FileUtility.getDstFilenames2(src_image_filenames,dst_path,src_path,True)
+        dst_image_filenames = FileUtility.getDstFilenames2(src_image_filenames,dst_path,src_path)
         dst_json_filenames = FileUtility.changeFilesExt(dst_image_filenames,'json')
 
 
