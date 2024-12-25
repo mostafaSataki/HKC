@@ -69,7 +69,6 @@ class LabelmeJson:
             "imageWidth": image_width
         }
 
+
         with open(json_filename, 'w', encoding='utf-8') as json_file:
             json.dump(data, json_file, indent=2, ensure_ascii=False)
-
-  
