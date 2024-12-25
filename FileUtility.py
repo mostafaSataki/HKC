@@ -1368,7 +1368,7 @@ class FileUtility:
       filenames2_key = FileUtility.getFilenamesFirstPostfix(filenames2)
       keys2 = list(filenames2_key.keys())
 
-      shared_keys = list(set(list1) & set(list2))
+      shared_keys = list(set(keys1) & set(keys2))
       if count != 0:
         shared_keys = shared_keys[:min(count,len(shared_keys))]
 
@@ -1376,8 +1376,8 @@ class FileUtility:
       filenames2 = []
 
       for shared_key in shared_keys:
-         filenames1.append(filenames1_key[shared_key])
-         filenames2.append(filenames2_key[shared_key])
+         filenames1.append(filenames1_key[shared_key][0])
+         filenames2.append(filenames2_key[shared_key][0])
           
       return filenames1,filenames2
 
@@ -1918,17 +1918,23 @@ class FileUtility:
     return file_counts
 
   @staticmethod
-  def compare_extension_counts(folder_path,ext1,ext2):
-    file_counts = FileUtility.count_files_by_extension(folder_path)
-    ext1_count = file_counts.get(ext1, 0)
-    ext2_count = file_counts.get(ext2, 0)
+  def compare_extension_counts(folder_path, extensions):
+    if not extensions or len(extensions) < 2:
+      raise ValueError("At least two extensions must be provided for comparison.")
 
-    if ext1_count > ext2_count:
-      return ext1
-    elif ext1_count < ext2_count:
-      return ext2
-    else:
-      return None
+    file_counts = FileUtility.count_files_by_extension(folder_path)
+    max_count = 0
+    max_ext = None
+
+    for ext in extensions:
+      ext_count = file_counts.get(ext, 0)
+      if ext_count > max_count:
+        max_count = ext_count
+        max_ext = ext
+      elif ext_count == max_count:
+        max_ext = None  # Tie, return None if counts are equal
+
+    return max_ext
 
   @staticmethod
   def copy_gt_file(src_dir, dst_dir, ext, prefix=None, postfix=None):
@@ -1967,6 +1973,39 @@ class FileUtility:
     files2 = FileUtility.getFoldersFiles(dir2)
     files2 = FileUtility.getFilenames(files2)
     return sorted(files1) == sorted(files2)
+
+  @staticmethod
+  def copy_images_from_paths(src_paths, dst_path):
+    FileUtility.create_folder_if_not_exists(dst_path)
+
+    # Initialize file counter
+    file_counter = 1
+
+    # List to store destination file paths
+    copied_files = []
+
+    # Iterate through each source path
+    for src_path in src_paths:
+      src_files = FileUtility.getFolderImageFiles(src_path)
+
+      # Copy each file with numbered filename
+      for src_file in tqdm(src_files):
+        # Get file extension
+        file_ext = os.path.splitext(src_file)[1]
+
+        # Create new filename with 7-digit zero-padded counter
+        new_filename = f"{file_counter:07d}{file_ext}"
+        dst_file = os.path.join(dst_path, new_filename)
+
+        FileUtility.copyFile(src_file, dst_file)
+
+        # Add to copied files list
+        copied_files.append(dst_file)
+
+        # Increment counter
+        file_counter += 1
+
+    return copied_files
 
 
 

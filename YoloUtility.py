@@ -5,7 +5,8 @@ from .GTDetection import *
 from .LableMeJson2YOLO import *
 from .Voc2YOLO import *
 from typing import List
-from .YoloInference import *
+from .YoloSegmentationInference import YoloSegmentationInference
+from .YoloDetectionInference import YoloDetectionInference
 
 class YoloUtility:
     def __init__(self,action_type = ActionType.segmentation ,model_size =ModelSize.nano):
@@ -42,8 +43,8 @@ class YoloUtility:
 
 
         
-    def generate_yolo_session(self, src_dir, yolo_dir, val_per, test_per):
-        ext = FileUtility.compare_extension_counts(src_dir, 'json', 'xml')
+    def generate_yolo_session(self, src_dir, yolo_dir, val_per, test_per,src_yolo_label_filename=None):
+        ext = FileUtility.compare_extension_counts(src_dir, ['json', 'xml','txt'])
         if ext == None:
             return
 
@@ -60,27 +61,39 @@ class YoloUtility:
         train_yolo_files = FileUtility.changeFilesExt(train_yolo_image_files,'txt')
         val_yolo_files = FileUtility.changeFilesExt(val_yolo_image_files,'txt')
         test_yolo_files = FileUtility.changeFilesExt(test_yolo_image_files,'txt')
-        train_json_files = FileUtility.changeFilesExt(train_gt_image_files, ext)
-        val_json_files =  FileUtility.changeFilesExt(val_gt_image_files, ext)
-        test_json_files =   FileUtility.changeFilesExt(test_gt_image_files, ext)
+
+        train_gt_files = FileUtility.changeFilesExt(train_gt_image_files, ext)
+        val_gt_files =  FileUtility.changeFilesExt(val_gt_image_files, ext)
+        test_gt_files =   FileUtility.changeFilesExt(test_gt_image_files, ext)
 
 
-        all_json_files = train_json_files + val_json_files + test_json_files
+        all_gt_files = train_gt_files + val_gt_files + test_gt_files
+
+
 
         yolo_label_filename = os.path.join(yolo_dir, "classes.txt")
 
-        labels = save_yolo_label(all_json_files,yolo_label_filename)
+        if ext == 'txt':
+            FileUtility.copyFileByName(src_yolo_label_filename,yolo_label_filename)
+            FileUtility.copyFilesByName(train_gt_files, train_yolo_files)
+            FileUtility.copyFilesByName(val_gt_files, val_yolo_files)
+            FileUtility.copyFilesByName(test_gt_files, test_yolo_files)
 
-        if ext == 'json':
-            lableme_to_yolo = LableMeJson2YOLO(labels, self.action_type)
-            lableme_to_yolo.convert_files(train_json_files, train_yolo_files)
-            lableme_to_yolo.convert_files(val_json_files, val_yolo_files)
-            lableme_to_yolo.convert_files(test_json_files, test_yolo_files)
-        elif ext == 'xml':
-            voc_to_yolo = Voc2YOLO(labels, self.action_type)
-            voc_to_yolo.convert_files(train_json_files, train_yolo_files)
-            voc_to_yolo.convert_files(val_json_files, val_yolo_files)
-            voc_to_yolo.convert_files(test_json_files, test_yolo_files)
+        else :
+            labels = save_yolo_label(all_gt_files, yolo_label_filename)
+
+
+
+            if ext == 'json':
+                lableme_to_yolo = LableMeJson2YOLO(labels, self.action_type)
+                lableme_to_yolo.convert_files(train_gt_files, train_yolo_files)
+                lableme_to_yolo.convert_files(val_gt_files, val_yolo_files)
+                lableme_to_yolo.convert_files(test_gt_files, test_yolo_files)
+            elif ext == 'xml':
+                voc_to_yolo = Voc2YOLO(labels, self.action_type)
+                voc_to_yolo.convert_files(train_gt_files, train_yolo_files)
+                voc_to_yolo.convert_files(val_gt_files, val_yolo_files)
+                voc_to_yolo.convert_files(test_gt_files, test_yolo_files)
 
 
         #copy image files
@@ -304,14 +317,24 @@ class YoloUtility:
         inf = YoloInference(model_filename, labels_file)
         inf.inference(src_filename,dst_filename)
     
-    @staticmethod
-    def inference_segment_dir(  model_filename: str, labels_file: str, src_dir: str, dst_dir: str,
-                                draw = True,save_json = False,is_rect_contour = False, min_area_cofi = None,crop_dir = None, crop_size = None):
-        inf = YoloInference(model_filename, labels_file,draw,save_json,is_rect_contour,min_area_cofi,crop_dir, crop_size)
-        inf.inference_dir(src_dir,dst_dir)
-        
-        
 
+
+    @staticmethod
+    def inference_segmentation_dir(model_filename: str, labels_file: str, src_dir: str, dst_dir: str,
+                                   draw=True, save_json=False, is_rect_contour=False, min_area_cofi=None, crop_dir=None,
+                                   crop_size=None):
+        inf = YoloSegmentationInference(model_filename, labels_file, draw, save_json, is_rect_contour, min_area_cofi, crop_dir,
+                            crop_size)
+        inf.inference_segmentation_dir(src_dir, dst_dir)
+
+
+    @staticmethod
+    def inference_detection_dir(  model_filename: str, labels_file: str, src_dir: str, dst_dir: str,
+                                draw = True,save_json = False, min_area_cofi = None,crop_dir = None, crop_size = None,
+                                  border_size = 0,border_color = (255,255,255)):
+        inf = YoloDetectionInference(model_filename, labels_file,draw,save_json,min_area_cofi,crop_dir, crop_size,
+                                     border_size,border_color)
+        inf.inference_detection_dir(src_dir,dst_dir)
 
             
 

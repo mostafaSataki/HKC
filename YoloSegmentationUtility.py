@@ -5,7 +5,7 @@ from typing import List, Tuple
 from HKC.LabelmeJson import *
 from HKC.CvUtility import *
 
-class YoloSegmentUtility:
+class YoloSegmentationUtility:
     def __init__(self,class_names,is_rect_contour = False, min_area_cofi = None):
         self.class_names = class_names
         self.is_rect_contour = is_rect_contour
@@ -26,7 +26,7 @@ class YoloSegmentUtility:
             else: return None
 
 
-    def get_segment_data(self, yolo_results, image):
+    def get_segmentation_data(self, yolo_results, image):
         original_height, original_width = image.shape[:2]
 
         if self.min_area_cofi is not None:
@@ -53,4 +53,5 @@ class YoloSegmentUtility:
                         
         return result
 
+   
                     

@@ -5,10 +5,10 @@ import numpy as np
 from HKC.FileUtility import *
 from typing import List, Tuple
 from HKC.LabelmeJson import *
-from HKC.YoloSegmentUtility import *
+from HKC.YoloSegmentationUtility import *
 from ultralytics import YOLO
 
-class YoloInference:
+class YoloSegmentationInference:
     def __init__(self, model_filename: str, labels_file: str,draw = True,save_json = False,
                  is_rect_contour = False, min_area_cofi = None,crop_dir = None, crop_size = None):
 
@@ -79,7 +79,7 @@ class YoloInference:
 
         return output
 
-    def _draw_contour_and_label2(self, image, results, alpha=0.5) -> np.ndarray:
+    def _draw_contour_and_label2_segmentation(self, image, results, alpha=0.5) -> np.ndarray:
 
         output = image.copy()
 
@@ -103,6 +103,29 @@ class YoloInference:
 
         return output
     
+    def _draw_bbox_and_label2_detection(self, image, results, alpha=0.5) -> np.ndarray:
+
+        output = image.copy()
+
+        for result in results:
+            contour = result[1]
+            label = result[2]
+            label_color = self._get_label_color(label)
+
+            overlay = image.copy()
+            cv2.drawContours(overlay, [contour], 0, label_color, -1)
+
+            # Blend the original image and the overlay
+            output = cv2.addWeighted(overlay, alpha, output, 1 - alpha, 0)
+
+            # Draw bounding box
+            x1, y1, x2, y2 = map(int, box[:4])
+            cv2.rectangle(output, (x1, y1), (x2, y2), color, 2)
+
+            # Draw label
+            cv2.putText(output, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, color, 2)
+
+        return output
     
     def get_crop_filename(self,filename, classname):
         self.crop_counter += 1
@@ -120,18 +143,18 @@ class YoloInference:
 
 
 
-    def inference(self, src_image_filename, dst_image_filename,dst_json_filename):
+    def inference_segmentation(self, src_image_filename, dst_image_filename,dst_json_filename):
         src_image = cv2.imread(src_image_filename, 1)
         segment_data = self.model(src_image, verbose=False)
         
-        segment_data = self.segment_utilty.get_segment_data(segment_data, src_image)
+        segment_data = self.segment_utilty.get_segmentation_data(segment_data, src_image)
         dst_image = src_image.copy()
 
         if self.draw:
-            dst_image =  self._draw_contour_and_label2(src_image, segment_data)
+            dst_image =  self._draw_contour_and_label2_segmentation(src_image, segment_data)
 
         if self.save_json:
-            self.labelme_json.save(segment_data, dst_image_filename, dst_json_filename, src_image)
+            self.labelme_json.save_segmentation(segment_data, dst_image_filename, dst_json_filename, src_image)
 
         if self.crop_dir is not None:
             self.save_crop_results(dst_image_filename, segment_data)
@@ -141,14 +164,43 @@ class YoloInference:
 
 
 
-    def inference_dir(self, src_path: str, dst_path: str):
+    def inference_segmentation_dir(self, src_path: str, dst_path: str):
         src_image_filenames = FileUtility.getFolderImageFiles(src_path)
         dst_image_filenames = FileUtility.getDstFilenames2(src_image_filenames,dst_path,src_path,True)
         dst_json_filenames = FileUtility.changeFilesExt(dst_image_filenames,'json')
 
 
         for src_image_filename,dst_image_filename,dst_json_filename in tqdm(zip( src_image_filenames,dst_image_filenames,dst_json_filenames)):
-            self.inference(src_image_filename, dst_image_filename,dst_json_filename)
+            self.inference_segmentation(src_image_filename, dst_image_filename,dst_json_filename)
 
+
+    def inference_detection(self, src_image_filename, dst_image_filename, dst_json_filename):
+        src_image = cv2.imread(src_image_filename, 1)
+        detection_data = self.model(src_image, verbose=False)
+    
+        detection_data = self.segment_utilty.get_detection_data(detection_data, src_image)
+        dst_image = src_image.copy()
+    
+        if self.draw:
+            dst_image = self._draw_bbox_and_label2_detection(src_image, detection_data)
+    
+        if self.save_json:
+            self.labelme_json.save_detection(detection_data, dst_image_filename, dst_json_filename, src_image)
+    
+        if self.crop_dir is not None:
+            self.save_crop_results(dst_image_filename, detection_data)
+    
+        if self.draw or self.save_json:
+            cv2.imwrite(dst_image_filename, dst_image)
+    
+    
+    def inference_detection_dir(self, src_path: str, dst_path: str):
+            src_image_filenames = FileUtility.getFolderImageFiles(src_path)
+            dst_image_filenames = FileUtility.getDstFilenames2(src_image_filenames,dst_path,src_path,True)
+            dst_json_filenames = FileUtility.changeFilesExt(dst_image_filenames,'json')
+    
+    
+            for src_image_filename,dst_image_filename,dst_json_filename in tqdm(zip( src_image_filenames,dst_image_filenames,dst_json_filenames)):
+                self.inference_detection(src_image_filename, dst_image_filename,dst_json_filename)
 
 
