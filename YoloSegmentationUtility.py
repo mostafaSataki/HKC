@@ -32,9 +32,7 @@ class YoloSegmentationUtility:
     import cv2
     import matplotlib.pyplot as plt
 
-<<<<<<<< HEAD:YoloSegmentationUtility.py
-    def get_segmentation_data(self, yolo_results, image):
-========
+
     def detect_quadrilateral_corners2(self,contour, angle_tolerance=15, debug_plot=False):
         """
         Detect 4 corners of a quadrilateral from a given contour
@@ -187,7 +185,7 @@ class YoloSegmentationUtility:
     # Example usage
     # corners = detect_quadrilateral_corners(contour, debug_plot=True)
     def get_segment_data(self, yolo_results, image):
->>>>>>>> c9f8f2af553f13f703ef16d9329f419588790cb1:YoloSegmentUtility.py
+
         original_height, original_width = image.shape[:2]
 
         if self.min_area_cofi is not None:

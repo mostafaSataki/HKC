@@ -41,6 +41,8 @@ class LabelmeJson:
         for result in results:
             x1, y1, x2, y2 = result['bbox']
             conf = result['confidence']
+            if conf < 0.65:
+                continue
             class_name = result['class_name']
 
 

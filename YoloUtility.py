@@ -75,12 +75,19 @@ class YoloUtility:
 
         if ext == 'txt':
             FileUtility.copyFileByName(src_yolo_label_filename,yolo_label_filename)
+            labels = FileUtility.read_text_list(src_yolo_label_filename)
+            labels = OrderedDict((lbl, index) for index, lbl in enumerate(labels))
             FileUtility.copyFilesByName(train_gt_files, train_yolo_files)
             FileUtility.copyFilesByName(val_gt_files, val_yolo_files)
             FileUtility.copyFilesByName(test_gt_files, test_yolo_files)
 
         else :
-            labels = save_yolo_label(all_gt_files, yolo_label_filename)
+            if yolo_label_filename is not None:
+                FileUtility.copyFileByName(src_yolo_label_filename, yolo_label_filename)
+                labels = FileUtility.read_text_list(src_yolo_label_filename)
+                labels = OrderedDict((lbl, index) for index, lbl in enumerate(labels))
+            else :
+                labels = save_yolo_label(all_gt_files, yolo_label_filename)
 
 
 

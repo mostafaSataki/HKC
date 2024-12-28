@@ -513,8 +513,8 @@ class FileUtility:
   def copyFiles2(src_path, dst_path, pattern_path, cut_flag=False, pair_extension=None):
     pattern_files = FileUtility.getFoldersFiles(pattern_path)
 
-    src_files = FileUtility.getDstFilenames2(pattern_files,pattern_path,src_path,pair_extension)
-    dst_files = FileUtility.getDstFilenames2(pattern_files, pattern_path, dst_path,pair_extension)
+    src_files = FileUtility.getDstFilenames2(pattern_files,src_path,pattern_path,pair_extension)
+    dst_files = FileUtility.getDstFilenames2(pattern_files, dst_path,pattern_path,pair_extension)
 
     for i in tqdm(range(len(pattern_files)), ncols=100):
       if os.path.exists(src_files[i]):
@@ -523,7 +523,12 @@ class FileUtility:
         if os.path.exists(src_files[i]):
           os.remove(src_files[i])
 
-
+  @staticmethod
+  def copyFileByName(src_filenames, dst_filenames):
+    if os.path.exists(dst_filenames):
+      return
+    if src_filenames != dst_filenames and os.path.exists(src_filenames):
+      shutil.copyfile(src_filenames, dst_filenames)
 
   @staticmethod
   def copyFilesByName(src_filenames,dst_filenames):
@@ -1975,11 +1980,9 @@ class FileUtility:
     return sorted(files1) == sorted(files2)
 
   @staticmethod
-  def copy_images_from_paths(src_paths, dst_path):
+  def copy_images_from_paths(src_paths, dst_path,pair_files_exts = [], file_counter = 1):
     FileUtility.create_folder_if_not_exists(dst_path)
 
-    # Initialize file counter
-    file_counter = 1
 
     # List to store destination file paths
     copied_files = []
@@ -1991,13 +1994,22 @@ class FileUtility:
       # Copy each file with numbered filename
       for src_file in tqdm(src_files):
         # Get file extension
-        file_ext = os.path.splitext(src_file)[1]
+        tokens = FileUtility.getFileTokens(src_file)
+        image_ext = tokens[2]
 
         # Create new filename with 7-digit zero-padded counter
-        new_filename = f"{file_counter:07d}{file_ext}"
+        new_filename = f"{file_counter:07d}{image_ext}"
         dst_file = os.path.join(dst_path, new_filename)
-
         FileUtility.copyFile(src_file, dst_file)
+
+        for ext in pair_files_exts:
+            pair_filename = os.path.join(tokens[0],tokens[1]+'.'+ext)
+            if os.path.exists(pair_filename):
+              new_filename = f"{file_counter:07d}.{ext}"
+              dst_file = os.path.join(dst_path, new_filename)
+              FileUtility.copyFile(pair_filename, dst_file)
+
+
 
         # Add to copied files list
         copied_files.append(dst_file)

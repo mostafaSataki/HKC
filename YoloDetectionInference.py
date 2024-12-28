@@ -83,30 +83,34 @@ class YoloDetectionInference:
 
 
     
-    def _draw_bbox_and_label2(self, image, results, alpha=0.5) -> np.ndarray:
+    def _draw_bbox_and_label2(self, image, results, alpha=0.5,gt_color = (0,255,0)) -> np.ndarray:
         output = image.copy()
 
         for result in results:
             # Ensure coordinates are integers
             x1, y1, x2, y2 = [int(coord) for coord in result['bbox']]
             conf = result['confidence']
+            if conf < 0.65:
+                continue
             class_name = result['class_name']
 
             # Get color for the class
-            color = self._get_label_color(class_name)
+            if gt_color is not None:
+                color = gt_color
+            else :      color = self._get_label_color(class_name)
 
             # Draw bounding box
-            cv2.rectangle(output, (x1, y1), (x2, y2), color, 2)
+            cv2.rectangle(output, (x1, y1), (x2, y2), color, 8)
 
             # Create label text with class name and confidence
             label = f"{class_name} {conf:.2f}"
 
             # Draw label background for better readability
-            (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 2)
-            cv2.rectangle(output, (x1, y1 - label_height - 10), (x1 + label_width, y1), color, -1)
+            (label_width, label_height), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.9, 4)
+            cv2.rectangle(output, (x1, y1 - label_height - 40), (x1 + label_width, y1), color, -1)
 
             # Draw label text
-            cv2.putText(output, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
+            cv2.putText(output, label, (x1, y1 - 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 4)
 
         return output
     
@@ -140,7 +144,11 @@ class YoloDetectionInference:
             
 
     def inference_detection(self, src_image_filename, dst_image_filename, dst_json_filename):
+        if (self.draw and os.path.exists(dst_image_filename)) or (self.save_json and os.path.exists(dst_json_filename)):
+            return
         src_image = cv2.imread(src_image_filename, 1)
+        if src_image is None:
+            return
 
         if self.border_size:
             src_image = cv2.copyMakeBorder(
@@ -157,6 +165,8 @@ class YoloDetectionInference:
     
         detection_data = self.detection_utilty.get_detection_data(detection_data, src_image)
         dst_image = src_image.copy()
+
+
 
 
 
@@ -194,6 +204,7 @@ class YoloDetectionInference:
 
     def inference_detection_dir(self, src_path: str, dst_path: str):
         src_image_filenames = FileUtility.getFolderImageFiles(src_path)
+        FileUtility.create_folder_if_not_exists(dst_path)
         dst_image_filenames = FileUtility.getDstFilenames2(src_image_filenames,dst_path,src_path)
         dst_json_filenames = FileUtility.changeFilesExt(dst_image_filenames,'json')
 
