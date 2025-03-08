@@ -519,6 +519,7 @@ class FileUtility:
     for i in tqdm(range(len(pattern_files)), ncols=100):
       if os.path.exists(src_files[i]):
          FileUtility.copyFile(src_files[i], dst_files[i])
+      else : print(src_files[i]+' does not exist')
       if cut_flag:
         if os.path.exists(src_files[i]):
           os.remove(src_files[i])

@@ -41,7 +41,61 @@ class YoloUtility:
 
         FileUtility.copyFilesByName(src_image_filenames,dst_image_filenames)
 
+    def split_data_filename(self,image_filenames, output_dir, train_per=0.7, val_per=0.2, test_per=0.1):
+        """
+        Split image filenames into train, validation, and test sets.
 
+        Args:
+            image_filenames (list): List of full image file paths
+            output_dir (str): Base directory for creating train/val/test folders
+            train_per (float): Percentage of data for training (default: 0.7)
+            val_per (float): Percentage of data for validation (default: 0.2)
+            test_per (float): Percentage of data for testing (default: 0.1)
+
+        Returns:
+            tuple: Lists of train/val/test image and ground truth file paths
+        """
+        # Validate percentages
+        if not (0.99 <= train_per + val_per + test_per <= 1.01):
+            raise ValueError("Train, validation, and test percentages must sum to 1.0")
+
+        # Create output directories
+        train_dir = os.path.join(output_dir, 'train')
+        val_dir = os.path.join(output_dir, 'val')
+        test_dir = os.path.join(output_dir, 'test')
+
+        os.makedirs(train_dir, exist_ok=True)
+        os.makedirs(val_dir, exist_ok=True)
+        os.makedirs(test_dir, exist_ok=True)
+
+        # Shuffle the filenames
+        random.seed(42)  # For reproducibility
+        random.shuffle(image_filenames)
+
+        # Calculate split indices
+        total_files = len(image_filenames)
+        train_end = int(total_files * train_per)
+        val_end = train_end + int(total_files * val_per)
+
+        # Split filenames
+        train_image_files = image_filenames[:train_end]
+        val_image_files = image_filenames[train_end:val_end]
+        test_image_files = image_filenames[val_end:]
+
+        # Create corresponding ground truth file paths
+        train_gt_files = train_image_files
+        val_gt_files = val_image_files
+        test_gt_files = test_image_files
+
+        # Generate destination paths
+        train_dst_image_files = [os.path.join(train_dir, os.path.basename(f)) for f in train_image_files]
+        val_dst_image_files = [os.path.join(val_dir, os.path.basename(f)) for f in val_image_files]
+        test_dst_image_files = [os.path.join(test_dir, os.path.basename(f)) for f in test_image_files]
+
+        return (
+            train_dst_image_files, val_dst_image_files, test_dst_image_files,
+            train_gt_files, val_gt_files, test_gt_files
+        )
         
     def generate_yolo_session(self, src_dir, yolo_dir, val_per, test_per,src_yolo_label_filename=None):
         ext = FileUtility.compare_extension_counts(src_dir, ['json', 'xml','txt'])
@@ -56,7 +110,7 @@ class YoloUtility:
 
         json_image_filenames = FileUtility.getFolderImageFiles(src_dir)
         train_yolo_image_files, val_yolo_image_files, test_yolo_image_files, train_gt_image_files, val_gt_image_files, test_gt_image_files = \
-            split_data_filename(json_image_filenames, yolo_dir,  train_per, val_per, test_per)
+             self.split_data_filename(json_image_filenames, yolo_dir,  train_per, val_per, test_per)
 
         train_yolo_files = FileUtility.changeFilesExt(train_yolo_image_files,'txt')
         val_yolo_files = FileUtility.changeFilesExt(val_yolo_image_files,'txt')
@@ -82,7 +136,7 @@ class YoloUtility:
             FileUtility.copyFilesByName(test_gt_files, test_yolo_files)
 
         else :
-            if yolo_label_filename is not None:
+            if src_yolo_label_filename is not None:
                 FileUtility.copyFileByName(src_yolo_label_filename, yolo_label_filename)
                 labels = FileUtility.read_text_list(src_yolo_label_filename)
                 labels = OrderedDict((lbl, index) for index, lbl in enumerate(labels))
@@ -128,7 +182,7 @@ class YoloUtility:
 
         json_image_filenames = FileUtility.getFolderImageFiles(voc_dir)
         train_yolo_image_files, val_yolo_image_files, test_yolo_image_files, train_voc_image_files, val_voc_image_files, test_voc_image_files = \
-            split_data_filename(json_image_filenames, yolo_dir,  train_per, val_per, test_per)
+            self.split_data_filename(json_image_filenames, yolo_dir,  train_per, val_per, test_per)
 
         train_yolo_files = FileUtility.changeFilesExt(train_yolo_image_files,'txt')
         val_yolo_files = FileUtility.changeFilesExt(val_yolo_image_files,'txt')
